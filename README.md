@@ -9,10 +9,15 @@ on a canvas, on black with a single accent colour. It is the shell written
 alongside [gluewc](https://github.com/vladbiber/gluewc) and the one that
 compositor is developed against.
 
-[![glueqs in use](https://raw.githubusercontent.com/vladbiber/gluewc/main/docs/media/glue-poster.jpg)](https://github.com/vladbiber/gluewc/blob/main/docs/media/glue-demo.mp4)
+![The media panel: album disc, dot equalizer, timeline and EQ presets](docs/media.png)
 
-Click for a minute and a half of it in use — the bar, the panels and the dash
-over the compositor's overview.
+*The media panel: the reel disc carries the album art, the dots are the live
+spectrum, and the right column is a 10-band EasyEffects equalizer.*
+
+![The bar and the compositor overview with the dash](docs/glue-tour.webp)
+
+*The bar stays put while the compositor's overview opens; the dash below it
+only exists while the overview is up.*
 
 ## What is in it
 
@@ -35,6 +40,25 @@ a panel behind most of them:
 | `battery` | Charge, health, power draw, time left and power profiles | Hidden when there is no battery |
 | `power` | Session menu: logout, reboot, power off | Each entry arms first, then runs |
 
+![The settings panel on its bar tab](docs/settings.png)
+
+*Settings: every widget can be moved between the three zones, reordered or
+switched off, and the whole thing is written back to `settings.json`.*
+
+![The network panel with a Wi-Fi list](docs/network.png)
+
+*Networks, with the connected one boxed in the accent; the lock marks the ones
+that will ask for a password. Bluetooth sits underneath.*
+
+![The tray menu open under a tray icon](docs/tray-menu.png)
+
+*Right click on a tray icon opens the app's own menu — checkboxes, disabled
+entries, submenus and quit — drawn in the shell's own style.*
+
+![The app launcher](docs/launcher.png)
+
+*The launcher: type to filter, most-launched first.*
+
 Plus the parts that appear on their own:
 
 - Volume and brightness OSDs, with a configurable dwell time
@@ -43,6 +67,15 @@ Plus the parts that appear on their own:
   from — that appears while the compositor's overview is up
 - A dot font that falls back to a plain Nerd Font label at the same cap height,
   so every widget keeps its layout with the dot rendering switched off
+
+The rest of the panels, in the same order as the bar:
+
+| | |
+| --- | --- |
+| ![Calendar](docs/calendar.png) | ![Volume mixer](docs/volume.png) |
+| Calendar, today boxed in the accent | Mixer: outputs, mic and per-app streams |
+| ![Battery](docs/battery.png) | ![Session menu](docs/session.png) |
+| Battery, health and power profiles | Session menu, each entry arms before it runs |
 
 ## Requirements
 
