@@ -26,9 +26,11 @@ PanelWindow {
     onVisibleChanged: if (!visible) locEditing = false
 
     // ---- wallpapers ----
-    // waypaper is the setter rather than swww directly: it drives the same swww
-    // backend but also records the choice, so the autostarted `waypaper
-    // --restore` brings it back after a reboot.
+    // waypaper is the setter rather than a backend directly: it drives whichever
+    // one is configured and records the choice, so the autostarted `waypaper
+    // --restore` brings it back after a reboot. Use the swaybg backend, not
+    // swww: swww dies under wlroots 0.20, which advertises a wl_shm format
+    // (BGR161616F) its bindings reject instead of ignoring.
     readonly property string homeDir: Quickshell.env("HOME") ?? ""
     readonly property string wallDir: Settings.s.wallpaperDir !== ""
                                     ? Settings.s.wallpaperDir
