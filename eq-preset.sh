@@ -2,12 +2,23 @@
 # Applies an EQ preset through EasyEffects (writes a 32-band preset and loads it).
 # Usage: eq-preset.sh <flat|bass|treble|vocal|pop|rock|jazz|classic>
 #        eq-preset.sh custom G1 G2 G3 G4 G5 G6 G7 G8 G9 G10
+#        eq-preset.sh off        quit EasyEffects, so its sink leaves the graph
+#
+# EasyEffects is started as a background service, never as a window: `-l` on
+# its own would pop the GUI up, and a GUI that gets closed takes the EQ sink
+# with it and leaves every stream that was routed through it silent.
 
 PRESET_DIR="$HOME/.config/easyeffects/output"
 PRESET_NAME="glueqs_eq"
 PRESET_FILE="$PRESET_DIR/${PRESET_NAME}.json"
 
 command -v easyeffects >/dev/null 2>&1 || { echo "easyeffects not installed" >&2; exit 1; }
+
+if [ "${1,,}" = off ]; then
+    easyeffects -q >/dev/null 2>&1
+    exit 0
+fi
+
 mkdir -p "$PRESET_DIR"
 
 case "${1,,}" in
@@ -46,4 +57,15 @@ preset = {"output": {"blocklist": [], "plugins_order": ["equalizer"],
 print(json.dumps(preset, indent=4))
 EOF
 
+# a running instance (service or window) takes the load command over D-Bus;
+# otherwise start the service first so no window appears
+if ! pgrep -u "$(id -u)" -x easyeffects >/dev/null 2>&1; then
+    easyeffects --gapplication-service >/dev/null 2>&1 &
+    disown 2>/dev/null || true
+    for _ in 1 2 3 4 5 6 7 8 9 10; do
+        sleep 0.3
+        pgrep -u "$(id -u)" -x easyeffects >/dev/null 2>&1 && break
+    done
+fi
 easyeffects -l "$PRESET_NAME" >/dev/null 2>&1 &
+disown 2>/dev/null || true

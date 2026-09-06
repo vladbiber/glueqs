@@ -1,5 +1,4 @@
 import Quickshell
-import Quickshell.DWL
 import Quickshell.Services.UPower
 import Quickshell.Services.SystemTray
 import QtQuick
@@ -23,10 +22,6 @@ PanelWindow {
     implicitHeight: Theme.barHeight
     color: "transparent"
 
-    readonly property var dwlOutput: {
-        DwlIpc.outputs;  // re-evaluate when outputs appear
-        return screen ? DwlIpc.outputForName(screen.name) : null;
-    }
 
     readonly property var leftModel: Settings.s.barLeft.split(",").filter(x => x !== "")
     readonly property var centerModel: Settings.s.barCenter.split(",").filter(x => x !== "")
@@ -39,7 +34,7 @@ PanelWindow {
 
     Component { id: cSettings;   SettingsWidget {} }
     Component { id: cLauncher;   LauncherWidget {} }
-    Component { id: cWorkspaces; Workspaces { dwlOutput: root.dwlOutput } }
+    Component { id: cWorkspaces; Workspaces { outputName: root.screen?.name ?? "" } }
     Component { id: cWeather;    WeatherWidget {} }
     Component { id: cClock;      ClockWidget {} }
     Component { id: cMedia;      MediaWidget {} }
@@ -55,7 +50,7 @@ PanelWindow {
     readonly property var visMap: ({
         settings: true,
         launcher: Settings.s.showLauncher,
-        workspaces: Settings.s.showWorkspaces,
+        workspaces: Settings.s.showWorkspaces && WsState.available,
         weather: Weather.ok && Settings.s.showWeather,
         clock: Settings.s.showClock,
         media: Settings.s.showMedia && MediaService.active !== null,

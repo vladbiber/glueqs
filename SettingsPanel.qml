@@ -2,7 +2,6 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
 import QtQuick
-import Qt.labs.folderlistmodel
 
 // Settings: centered modal with a sidebar of tabs
 // (BAR / CLOCK / AUDIO / WEATHER / WALLPAPER / THEME / ABOUT).
@@ -26,26 +25,9 @@ PanelWindow {
     onVisibleChanged: if (!visible) locEditing = false
 
     // ---- wallpapers ----
-    // waypaper is the setter rather than a backend directly: it drives whichever
-    // one is configured and records the choice, so the autostarted `waypaper
-    // --restore` brings it back after a reboot. Use the swaybg backend, not
-    // swww: swww dies under wlroots 0.20, which advertises a wl_shm format
-    // (BGR161616F) its bindings reject instead of ignoring.
     readonly property string homeDir: Quickshell.env("HOME") ?? ""
-    readonly property string wallDir: Settings.s.wallpaperDir !== ""
-                                    ? Settings.s.wallpaperDir
-                                    : homeDir + "/Pictures/Wallpapers"
-    function parentDir(p) {
-        const i = p.lastIndexOf("/");
-        return i <= 0 ? "/" : p.slice(0, i);
-    }
     function shortDir(p) {
         return (p.startsWith(homeDir) ? "~" + p.slice(homeDir.length) : p).toUpperCase();
-    }
-    Process { id: wallpaperProc }
-    function applyWallpaper(path) {
-        wallpaperProc.command = ["waypaper", "--wallpaper", path];
-        wallpaperProc.running = true;
     }
 
     // ---- widget order/zone management ----
@@ -430,147 +412,68 @@ PanelWindow {
                     width: parent.width
                     spacing: 6
 
-                    // current folder + step out of it
-                    Item {
-                        width: parent.width; height: 24
+                    // the picker is its own panel: big thumbnails, keyboard
+                    Rectangle {
+                        width: parent.width; height: 34
+                        radius: 8
+                        color: pma.containsMouse ? "#1c1c1c" : "#161616"
+                        border.color: pma.containsMouse ? Theme.red : Theme.blockBorder
+                        border.width: 1
                         DotText {
-                            anchors { left: parent.left; verticalCenter: parent.verticalCenter }
-                            text: root.shortDir(root.wallDir)
-                            px: 0.85; gap: 0.85; color: Theme.fg
+                            anchors.centerIn: parent
+                            text: "OPEN THE PICKER   (MOD+W)"
+                            px: 1; gap: 1
                         }
-                        Rectangle {
-                            anchors { right: parent.right; verticalCenter: parent.verticalCenter }
-                            width: 34; height: 20; radius: 5
-                            color: upma.containsMouse ? "#1c1c1c" : "transparent"
-                            border.color: upma.containsMouse ? Theme.red : Theme.blockBorder
-                            border.width: 1
-                            DotText {
-                                anchors.centerIn: parent
-                                text: "UP"
-                                px: 0.8; gap: 0.8
-                                color: upma.containsMouse ? Theme.fg : Theme.mid
-                            }
-                            MouseArea {
-                                id: upma
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                onClicked: Settings.s.wallpaperDir = root.parentDir(root.wallDir)
-                            }
+                        MouseArea {
+                            id: pma
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            onClicked: Popups.open = "wallpaper"
                         }
                     }
-
-                    // subfolders, click to go in
-                    FolderListModel {
-                        id: wpDirs
-                        folder: "file://" + root.wallDir
-                        showFiles: false
-                        showDotAndDotDot: false
-                        sortField: FolderListModel.Name
+                    DotText {
+                        text: "FOLDER  " + root.shortDir(Wallpapers.dir)
+                        px: 0.85; gap: 0.85; color: Theme.mid
                     }
-                    Flow {
-                        width: parent.width
-                        spacing: 4
-                        visible: wpDirs.count > 0
+                    DotText {
+                        text: "NOW  " + (Settings.s.wallpaper === "" ? "NONE"
+                                : root.shortDir(Settings.s.wallpaper).slice(-40))
+                        px: 0.85; gap: 0.85; color: Theme.mid
+                    }
+                    Item { width: 1; height: 4 }
+                    SliderRow {
+                        label: "FX TIME"
+                        valueText: Settings.s.wallpaperTransitionMs + "MS"
+                        value: Settings.s.wallpaperTransitionMs / 3000
+                        onMoved: v => Settings.s.wallpaperTransitionMs = Math.round(v * 30) * 100
+                    }
+                    Item { width: 1; height: 4 }
+                    DotText { text: "BEHIND THE PICTURE"; px: 1; gap: 1; color: Theme.dim }
+                    Row {
+                        spacing: 10
                         Repeater {
-                            model: wpDirs
+                            model: ["#000000", "#241f31", "#1a1a2e", "#101820", "#f2f2f2"]
                             delegate: Rectangle {
-                                id: dchip
-                                required property string fileName
-                                required property string filePath
-                                width: dlabel.implicitWidth + 16; height: 20
-                                radius: 5
-                                color: dma.containsMouse ? "#1c1c1c" : "transparent"
-                                border.color: dma.containsMouse ? Theme.red : Theme.blockBorder
+                                required property string modelData
+                                width: 24; height: 24; radius: 12
+                                color: "transparent"
+                                border.color: Settings.s.wallpaperSolid === modelData ? Theme.fg : Theme.blockBorder
                                 border.width: 1
-                                DotText {
-                                    id: dlabel
-                                    anchors.centerIn: parent
-                                    text: dchip.fileName.toUpperCase()
-                                    px: 0.75; gap: 0.75
-                                    color: dma.containsMouse ? Theme.fg : Theme.mid
-                                }
-                                MouseArea {
-                                    id: dma
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    onClicked: Settings.s.wallpaperDir = dchip.filePath
-                                }
-                            }
-                        }
-                    }
-
-                    // the wallpapers themselves, click to apply
-                    FolderListModel {
-                        id: wpFiles
-                        folder: "file://" + root.wallDir
-                        showDirs: false
-                        showDotAndDotDot: false
-                        sortField: FolderListModel.Name
-                        nameFilters: ["*.jpg", "*.jpeg", "*.png", "*.webp", "*.bmp", "*.gif"]
-                    }
-                    GridView {
-                        id: wpGrid
-                        width: parent.width
-                        // fill whatever the rows above left over, minus the hint line
-                        height: Math.max(120, tabArea.height - y - 18)
-                        clip: true
-                        cellWidth: Math.floor(width / 3)
-                        cellHeight: Math.round(cellWidth * 0.64)
-                        model: wpFiles
-                        boundsBehavior: Flickable.StopAtBounds
-
-                        delegate: Item {
-                            id: wcell
-                            required property string fileName
-                            required property string filePath
-                            width: wpGrid.cellWidth
-                            height: wpGrid.cellHeight
-
-                            Rectangle {
-                                anchors { fill: parent; margins: 3 }
-                                radius: 8
-                                color: "#161616"
-                                border.color: wma.containsMouse ? Theme.red : Theme.blockBorder
-                                border.width: 1
-                                clip: true
-
-                                Image {
-                                    anchors { fill: parent; margins: 1 }
-                                    source: "file://" + wcell.filePath
-                                    fillMode: Image.PreserveAspectCrop
-                                    sourceSize.width: 260
-                                    asynchronous: true
-                                    cache: true
-                                }
-                                // name band, only while hovered
                                 Rectangle {
-                                    anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
-                                    height: 16
-                                    visible: wma.containsMouse
-                                    color: "#cc000000"
-                                    DotText {
-                                        anchors.centerIn: parent
-                                        text: wcell.fileName.slice(0, 18).toUpperCase()
-                                        px: 0.7; gap: 0.7
-                                    }
+                                    anchors.centerIn: parent
+                                    width: 13; height: 13; radius: 6.5
+                                    color: parent.modelData
                                 }
                                 MouseArea {
-                                    id: wma
                                     anchors.fill: parent
-                                    hoverEnabled: true
-                                    onClicked: root.applyWallpaper(wcell.filePath)
+                                    onClicked: Settings.s.wallpaperSolid = parent.modelData
                                 }
                             }
                         }
                     }
-
+                    Item { width: 1; height: 6 }
                     DotText {
-                        visible: wpFiles.count === 0
-                        text: "NO IMAGES IN THIS FOLDER"
-                        px: 0.9; gap: 0.9; color: Theme.dim
-                    }
-                    DotText {
-                        text: "CLICK TO APPLY. MOD+W OPENS THIS TAB."
+                        text: "THE SHELL PAINTS THE WALLPAPER ITSELF. NO SWWW, NO WAYPAPER."
                         px: 0.7; gap: 0.7; color: Theme.hint
                     }
                 }

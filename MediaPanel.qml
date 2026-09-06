@@ -58,14 +58,70 @@ PanelWindow {
         onTriggered: root.pos = root.player?.position ?? 0
     }
 
-    PwAudioSpectrum {
+    // The live spectrum needs PwAudioSpectrum, which only the noctalia-qs
+    // fork of Quickshell has. It is loaded from its own file so a Quickshell
+    // without it just fails that load; the panel then animates a synthetic
+    // equalizer while something plays, so nothing looks broken.
+    Loader {
+        id: spectrumLoader
+        source: "SpectrumSource.qml"
+        active: true
+        onStatusChanged: if (status === Loader.Error)
+            console.info("glueqs: no PwAudioSpectrum in this quickshell, using the synthetic equalizer");
+    }
+    Item {
         id: spectrum
-        node: Pipewire.defaultAudioSink
-        enabled: root.visible && Settings.s.eqEnabled
-        barCount: 24
-        frameRate: 30
+        readonly property bool live: spectrumLoader.status === Loader.Ready
+        readonly property bool on: root.visible && Settings.s.eqEnabled
+        property var values: []
+        property var fake: []
+        Binding {
+            target: spectrumLoader.item
+            property: "enabled"
+            value: spectrum.on
+            when: spectrum.live
+        }
+        Connections {
+            target: spectrum.live ? spectrumLoader.item : null
+            function onValuesChanged() { spectrum.values = spectrumLoader.item.values }
+        }
+        Timer {
+            interval: 66
+            running: spectrum.on && !spectrum.live
+            repeat: true
+            property real t: 0
+            onTriggered: {
+                t += 0.066;
+                const playing = root.player?.isPlaying ?? false;
+                const out = [];
+                for (let i = 0; i < 24; i++) {
+                    const base = playing
+                        ? 0.35 + 0.3 * Math.sin(t * 2.1 + i * 0.7) * Math.sin(t * 0.9 + i * 1.3)
+                          + 0.25 * Math.abs(Math.sin(t * 3.7 + i * 0.4))
+                        : 0.06 + 0.04 * Math.sin(t * 1.5 + i * 0.5);
+                    out.push(Math.max(0, Math.min(1, base * (1 - i / 40))));
+                }
+                spectrum.values = out;
+            }
+        }
     }
     PwObjectTracker { objects: Pipewire.defaultAudioSink ? [ Pipewire.defaultAudioSink ] : [] }
+
+    // EasyEffects only runs while the equalizer is wanted; switching the
+    // visualizer off in the settings also takes the EQ sink out of the graph,
+    // which is what "my audio broke" usually needs
+    Connections {
+        target: Settings.s
+        function onEqEnabledChanged() {
+            if (Settings.s.eqEnabled)
+                Quickshell.execDetached([Quickshell.shellPath("eq-preset.sh"),
+                    Settings.s.eqPreset === "" || Settings.s.eqPreset === "CUSTOM" ? "custom" : Settings.s.eqPreset.toLowerCase()]
+                    .concat(Settings.s.eqPreset === "" || Settings.s.eqPreset === "CUSTOM"
+                        ? Settings.s.eqGains.split(",") : []));
+            else
+                Quickshell.execDetached([Quickshell.shellPath("eq-preset.sh"), "off"]);
+        }
+    }
 
     function fmt(s) {
         s = Math.max(0, Math.floor(s));

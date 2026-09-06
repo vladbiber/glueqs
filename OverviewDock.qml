@@ -1,6 +1,5 @@
 import Quickshell
 import Quickshell.Wayland
-import Quickshell.Wayland._ToplevelManagement
 import QtQuick
 
 // GNOME-style dash for the compositor overview: pinned apps, then whatever is

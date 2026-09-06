@@ -44,6 +44,13 @@ Singleton {
             property real scale: 1.0
             property bool dotFont: true          // off = plain text instead of dots
             property string wallpaperDir: ""     // empty = ~/Pictures/Wallpapers
+            property string wallpaper: ""        // the picture on every screen
+            property string wallpaperPerMonitor: "" // "name=path;name=path" overrides
+            property string wallpaperFill: "crop"   // crop | fit | stretch | center | tile
+            property string wallpaperTransition: "random" // fade | wipe | slide | zoom | random
+            property int wallpaperTransitionMs: 900
+            property int wallpaperRandomMin: 0   // minutes between random changes, 0 = off
+            property string wallpaperSolid: "#000000" // behind the picture, or alone without one
             property string dockPinned: ""       // desktop entry ids pinned to the overview dash
             property string dockUsage: ""        // "id=count,id=count", most used first
             property string accent: "#d71921"

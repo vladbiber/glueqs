@@ -27,8 +27,9 @@ a panel behind most of them:
 | Widget | Left click | Also |
 | --- | --- | --- |
 | `settings` | Settings panel: bar, clock, audio, weather, wallpaper, theme | |
+| `wallpaper` | (not a widget) The picker on `Super+W`; the shell paints the wallpaper itself | |
 | `launcher` | App launcher: type to filter, Enter or click to launch | |
-| `workspaces` | Switch to that workspace | Occupied ones show, empty ones hide |
+| `workspaces` | Switch to that workspace | Occupied ones show, empty ones hide; read from gluewc's state file, switched through `gluewc-msg`, so no extra Quickshell module is needed |
 | `tray` | Activate the app | Middle click: secondary action. **Right click: the app's own menu, quit included** |
 | `media` | Expanded player: spinning disc, dot equalizer, dotted timeline, 10-band EasyEffects EQ | Prev/play/next on the tile itself |
 | `weather` | Forecast panel | Current conditions from wttr.in |
@@ -84,15 +85,16 @@ degrades to a widget that simply does not appear.
 
 | For | Needs |
 | --- | --- |
-| The shell itself | [Quickshell](https://quickshell.org/) with Qt 6 |
-| Workspaces | The `Quickshell.DWL` module and a dwl-family compositor (gluewc, dwl) |
+| The shell itself | [Quickshell](https://quickshell.org/) 0.2 or newer with Qt 6 — the one your distribution packages is fine |
+| Workspaces | gluewc, which writes `$XDG_STATE_HOME/gluewc/workspaces` and installs `gluewc-msg` |
 | Overview dash | gluewc, which publishes its overview state to `$XDG_STATE_HOME/gluewc/overview` |
+| Live spectrum in the media panel | The `PwAudioSpectrum` type, which only the noctalia-qs fork of Quickshell has; without it the panel animates a synthetic equalizer |
 | Volume, media, tray, notifications, Bluetooth | PipeWire, and the MPRIS, SNI and notification services Quickshell already speaks |
 | Wi-Fi and Bluetooth panels | `nmcli`, `bluetoothctl` |
 | Weather | `curl`, and a location set in the settings panel |
 | Brightness | A backlight under `/sys/class/backlight`, plus `udevadm` to follow external changes |
 | Equalizer presets | `easyeffects` |
-| Wallpaper picker | `waypaper` (which drives swww and records the choice) |
+| Wallpaper | Nothing: the shell paints it itself, on a background layer per screen |
 | Session menu | `loginctl` |
 
 ## Install
@@ -132,7 +134,12 @@ watched, so editing it by hand applies immediately as well.
 | `volumeStep` | Wheel and key step, in percent |
 | `weatherLocation`, `weatherInterval` | wttr.in query and refresh minutes |
 | `eqEnabled`, `eqPreset`, `eqGains` | Media panel equalizer |
+| `wallpaper`, `wallpaperPerMonitor` | The picture on every screen, and `name=path;name=path` overrides for single screens |
 | `wallpaperDir` | Where the wallpaper picker starts, empty for `~/Pictures/Wallpapers` |
+| `wallpaperFill` | `crop`, `fit`, `stretch`, `center` or `tile` |
+| `wallpaperTransition`, `wallpaperTransitionMs` | `fade`, `wipe`, `slide`, `zoom` or `random`, and how long it takes |
+| `wallpaperRandomMin` | Minutes between random picks from the folder, 0 for never |
+| `wallpaperSolid` | The colour behind the picture, or alone when there is none |
 | `dockPinned`, `dockUsage` | Overview dash pins and launch counts |
 
 If `clock` is in the centre zone it is pinned to the exact centre of the screen
@@ -142,9 +149,12 @@ else is on the bar.
 ## From outside
 
 ```sh
-qs -c glueqs ipc call glueqs wallpaper   # open the settings panel on wallpapers
-qs -c glueqs ipc call glueqs settings    # toggle the settings panel
-qs -c glueqs ipc call glueqs close       # close whatever panel is open
+qs -c glueqs ipc call glueqs wallpaper            # toggle the wallpaper picker
+qs -c glueqs ipc call glueqs setwallpaper PATH    # put PATH on every screen
+qs -c glueqs ipc call glueqs nextwallpaper        # the next picture in the folder
+qs -c glueqs ipc call glueqs randomwallpaper      # a random one
+qs -c glueqs ipc call glueqs settings             # toggle the settings panel
+qs -c glueqs ipc call glueqs close                # close whatever panel is open
 ```
 
 Bound to a key, the first one gives the wallpaper picker a shortcut:
@@ -153,10 +163,24 @@ Bound to a key, the first one gives the wallpaper picker a shortcut:
 bind_insert = mod+w = spawn:qs -c glueqs ipc call glueqs wallpaper
 ```
 
+## Wallpaper
+
+The shell draws the wallpaper itself, so there is no swww, waypaper or swaybg
+to run and nothing to keep in step: pick a picture in the panel (`Super+W`
+under gluewc, or the settings panel's WALLPAPER tab) and it goes into
+`settings.json` like every other setting. The picker shows the folder as a
+grid with the picture on screen marked in the accent, walks into subfolders,
+applies to every screen or only the one it is on, and sets the fill mode, the
+transition (fade, wipe, slide, zoom, or a random one each time) and an optional
+shuffle timer. Arrows move, Enter applies, `R` shuffles, `N` is next,
+Backspace goes up a folder, Escape closes. The picture is decoded off the main
+thread and the transition only starts once it is there.
+
 ## Layout of the source
 
 Singletons hold the state (`Settings`, `Theme`, `Popups`, `Audio`, `Brightness`,
-`Weather`, `Notifs`, `MediaService`, `Session`, `Overview`, `Tray`), `*Widget`
+`Weather`, `Notifs`, `MediaService`, `Session`, `Overview`, `Tray`, `WsState`,
+`Wallpapers`), `Wallpaper` is the background window per screen, `*Widget`
 files are the bar tiles, `*Panel` and `*Popup` files are the windows behind
 them, and `Dot*` plus `DotFont.js` are the drawing primitives everything else
 is built from. `shell.qml` instantiates one of each per screen.

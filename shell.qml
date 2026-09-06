@@ -7,7 +7,9 @@ ShellRoot {
 
         Scope {
             required property var modelData
+            Wallpaper { screen: modelData }
             Bar { screen: modelData }
+            WallpaperPanel { screen: modelData }
             VolumeOsd { screen: modelData }
             BrightnessOsd { screen: modelData }
             MediaPanel { screen: modelData }
