@@ -50,12 +50,15 @@ Singleton {
     // set on one screen, or everywhere when screenName is empty. Setting it
     // everywhere also drops the single-screen overrides, so "all" means all.
     function set(path, screenName) {
+        if (!path || path === "") return;
         if (screenName && screenName !== "") {
+            if (pathFor(screenName) === path) return;
             const m = perMonitor;
             m[screenName] = path;
             writePerMonitor(m);
             if (Settings.s.wallpaper === "") Settings.s.wallpaper = path;
         } else {
+            if (Settings.s.wallpaperPerMonitor === "" && Settings.s.wallpaper === path) return;
             Settings.s.wallpaperPerMonitor = "";
             Settings.s.wallpaper = path;
         }
@@ -74,7 +77,10 @@ Singleton {
                 for (const name of text.split("\n"))
                     if (name !== "" && root.isImage(name)) out.push(root.dir + "/" + name);
                 out.sort((a, b) => a.localeCompare(b));
-                root.files = out;
+                // only publish a change: reassigning the same list would
+                // rebuild every thumbnail in the picker for nothing
+                if (out.join("\n") !== root.files.join("\n"))
+                    root.files = out;
             }
         }
     }

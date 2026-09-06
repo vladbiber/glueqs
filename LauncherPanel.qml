@@ -163,12 +163,10 @@ PanelWindow {
                         border.width: 1
                         DotText {
                             anchors { left: parent.left; leftMargin: 10; verticalCenter: parent.verticalCenter }
-                            text: {
-                                // modelData is briefly undefined while the view
-                                // re-binds delegates after a model reset
-                                const n = (row.modelData?.name ?? "").toUpperCase();
-                                return n.length > 22 ? n.slice(0, 21) + "." : n;
-                            }
+                            // modelData is briefly undefined while the view
+                            // re-binds delegates after a model reset
+                            text: (row.modelData?.name ?? "").toUpperCase()
+                            maxWidth: row.width - 20
                             px: 1.2; gap: 1
                         }
                         MouseArea {

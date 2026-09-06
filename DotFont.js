@@ -42,6 +42,7 @@ var GLYPHS = {
     ":": ["0","1","0","0","1","0","0"],
     "%": ["11001","11010","00010","00100","01000","01011","10011"],
     ".": ["0","0","0","0","0","0","1"],
+    "\u2026": ["00000","00000","00000","00000","00000","00000","10101"],
     ",": ["00","00","00","00","00","01","10"],
     "-": ["000","000","000","111","000","000","000"],
     "_": ["00000","00000","00000","00000","00000","00000","11111"],
@@ -100,6 +101,19 @@ function glyph(ch) {
     if (g === undefined) g = GLYPHS[ch.toUpperCase()];
     if (g === undefined) g = GLYPHS[" "];
     return g;
+}
+
+// the longest prefix of text that fits in maxCells once "\u2026" is appended,
+// or the text itself when all of it fits
+function fitCells(text, maxCells) {
+    if (textCells(text) <= maxCells) return text;
+    var dots = textCells("\u2026");
+    for (var n = text.length - 1; n > 0; n--) {
+        var head = text.slice(0, n).replace(/\s+$/, "");
+        if (head === "") continue;
+        if (textCells(head) + 1 + dots <= maxCells) return head + "\u2026";
+    }
+    return "\u2026";
 }
 
 // width in cells of a text string, including 1 blank cell between glyphs

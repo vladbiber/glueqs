@@ -136,6 +136,9 @@ watched, so editing it by hand applies immediately as well.
 | `eqEnabled`, `eqPreset`, `eqGains` | Media panel equalizer |
 | `wallpaper`, `wallpaperPerMonitor` | The picture on every screen, and `name=path;name=path` overrides for single screens |
 | `wallpaperDir` | Where the wallpaper picker starts, empty for `~/Pictures/Wallpapers` |
+| `wallpaper`, `wallpaperPerMonitor` | The picture, and `name=path;…` overrides per screen |
+| `wallpaperFill`, `wallpaperTransition`, `wallpaperTransitionMs` | crop/fit/stretch/center/tile, fade/wipe/slide/zoom/random, duration |
+| `wallpaperRandomMin`, `wallpaperSolid` | Shuffle interval in minutes (0 = off), colour behind the picture |
 | `wallpaperFill` | `crop`, `fit`, `stretch`, `center` or `tile` |
 | `wallpaperTransition`, `wallpaperTransitionMs` | `fade`, `wipe`, `slide`, `zoom` or `random`, and how long it takes |
 | `wallpaperRandomMin` | Minutes between random picks from the folder, 0 for never |

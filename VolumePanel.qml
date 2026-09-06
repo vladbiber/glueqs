@@ -95,7 +95,8 @@ PanelWindow {
                         border.width: 1
                         DotText {
                             anchors { left: parent.left; leftMargin: 10; verticalCenter: parent.verticalCenter }
-                            text: root.trunc(root.devName(drow.modelData), 24)
+                            text: root.devName(drow.modelData).toUpperCase()
+                            maxWidth: drow.width - 20
                             px: 1.1; gap: 1
                             color: drow.isDefault ? Theme.fg : Theme.mid
                         }
@@ -158,7 +159,8 @@ PanelWindow {
                         width: parent.width
                         spacing: 3
                         DotText {
-                            text: root.trunc(root.appName(arow.modelData), 24)
+                            text: root.appName(arow.modelData).toUpperCase()
+                            maxWidth: arow.width
                             px: 1.1; gap: 1
                             color: arow.modelData.audio?.muted ? Theme.dim : Theme.fg
                             MouseArea {

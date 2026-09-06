@@ -432,7 +432,7 @@ PanelWindow {
                             id: chip
                             required property string modelData
                             readonly property bool active: Settings.s.eqPreset === modelData
-                            width: 86; height: 24
+                            width: 92; height: 24
                             radius: 6
                             color: cma.containsMouse ? "#1c1c1c" : "transparent"
                             border.color: active ? Theme.red : Theme.blockBorder
@@ -440,6 +440,7 @@ PanelWindow {
                             DotText {
                                 anchors.centerIn: parent
                                 text: chip.modelData
+                                maxWidth: parent.width - 10
                                 px: 1; gap: 1
                                 color: chip.active ? Theme.fg : Theme.mid
                             }

@@ -234,7 +234,8 @@ PanelWindow {
                             }
                             DotText {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: gcell.modelData.name.slice(0, 11).toUpperCase()
+                                text: gcell.modelData.name.toUpperCase()
+                                maxWidth: gcell.width - 8
                                 px: 0.7; gap: 0.7
                                 color: gma.containsMouse ? Theme.fg : Theme.mid
                             }
@@ -422,7 +423,8 @@ PanelWindow {
             DotText {
                 id: lbl
                 anchors.centerIn: parent
-                text: (item.entry ? item.entry.name : item.appId).slice(0, 22).toUpperCase()
+                text: (item.entry ? item.entry.name : item.appId).toUpperCase()
+                maxWidth: 220
                 px: 0.8; gap: 0.8
             }
         }

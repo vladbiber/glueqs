@@ -50,7 +50,14 @@ PanelWindow {
     function show(p) {
         const nextIdx = 1 - front;
         const incoming = slots.itemAt(nextIdx);
+        const showing = slots.itemAt(front);
         if (!incoming) return;
+        // the same picture again (a per-screen override that resolves to the
+        // one already up, say) is not a transition
+        if (showing && String(showing.source) === (p !== "" ? "file://" + p : "")) {
+            incoming.pending = false;
+            return;
+        }
         incoming.pending = true;
         incoming.source = p !== "" ? "file://" + p : "";
         incoming.maybeReveal();

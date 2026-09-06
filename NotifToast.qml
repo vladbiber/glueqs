@@ -46,7 +46,8 @@ PanelWindow {
                 width: parent.width; height: 8
                 DotText {
                     anchors.left: parent.left
-                    text: root.trunc(root.current.app, 22)
+                    text: root.current.app.toUpperCase()
+                    maxWidth: parent.width - 60
                     px: 0.8; gap: 0.8; color: Theme.red
                 }
                 DotText {
@@ -56,12 +57,14 @@ PanelWindow {
                 }
             }
             DotText {
-                text: root.trunc(root.current.summary.toUpperCase(), 26)
+                text: root.current.summary.toUpperCase()
+                maxWidth: parent.width
                 px: 1.2; gap: 1
             }
             DotText {
                 visible: root.current.body !== ""
-                text: root.trunc(root.current.body.toUpperCase(), 32)
+                text: root.current.body.toUpperCase()
+                maxWidth: parent.width
                 px: 0.9; gap: 0.9; color: Theme.mid
             }
         }

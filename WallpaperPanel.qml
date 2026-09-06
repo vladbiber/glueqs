@@ -3,16 +3,14 @@ import Quickshell.Wayland
 import QtQuick
 import Qt.labs.folderlistmodel
 
-// The wallpaper picker: a grid of the pictures in a folder, the one on screen
-// marked in the accent, applied with a click or Enter. Fill mode, transition,
-// shuffle and the "all screens or just this one" choice sit underneath.
-// Opened from the bar's settings, Mod+W, or `qs -c glueqs ipc call glueqs wallpaper`.
+// The wallpaper picker: a centred grid of the pictures in a folder, the one on
+// screen marked in the accent, applied with one click or Enter. Typing filters
+// the names; fill mode, transition, shuffle and "all screens or just this one"
+// sit underneath. Opened from the bar's settings, Mod+W, or
+// `qs -c glueqs ipc call glueqs wallpaper`.
 PanelWindow {
     id: root
-    anchors.top: true
-    margins.top: Theme.popupTop
-    implicitWidth: 780
-    implicitHeight: 560
+    anchors { top: true; bottom: true; left: true; right: true }
     color: "transparent"
     exclusionMode: ExclusionMode.Ignore
     WlrLayershell.layer: WlrLayer.Overlay
@@ -23,15 +21,27 @@ PanelWindow {
     // "" = every screen, otherwise this screen only
     property string target: ""
     property int sel: -1
+    property string filter: ""
 
-    readonly property var files: Wallpapers.files
     readonly property string current: Wallpapers.pathFor(root.screenName)
+    readonly property var files: {
+        const q = filter.toLowerCase();
+        return q === "" ? Wallpapers.files
+                        : Wallpapers.files.filter(p => root.baseName(p).toLowerCase().includes(q));
+    }
+
+    // the card sits in the middle and takes what the screen allows
+    readonly property int cardW: Math.min(960, Math.round(width * 0.78))
+    readonly property int cardH: Math.min(680, Math.round(height * 0.82))
+    readonly property int columns: Math.max(3, Math.floor((cardW - 32) / 210))
 
     onVisibleChanged: {
         if (visible) {
+            filter = "";
             Wallpapers.refresh();
-            sel = Math.max(0, files.indexOf(current));
+            sel = Math.max(0, Wallpapers.files.indexOf(current));
             keys.forceActiveFocus();
+            grid.positionViewAtIndex(sel, GridView.Contain);
         }
     }
 
@@ -74,6 +84,7 @@ PanelWindow {
             id: chipLabel
             anchors.centerIn: parent
             text: chip.label
+            maxWidth: 160
             px: 0.8; gap: 0.8
             color: chip.on ? "#000000" : (cma.containsMouse ? Theme.fg : Theme.mid)
         }
@@ -85,29 +96,56 @@ PanelWindow {
         }
     }
 
+    // a click outside the card closes it
+    MouseArea {
+        anchors.fill: parent
+        onClicked: Popups.open = ""
+    }
+
     Rectangle {
         id: content
-        anchors.fill: parent
-        radius: 14
+        anchors.centerIn: parent
+        width: root.cardW
+        height: root.cardH
+        radius: 16
         color: "#0d0d0d"
         border.color: Theme.blockBorder
         border.width: 1
 
-        // keyboard: arrows move, Enter applies, R shuffles, Esc closes
+        MouseArea { anchors.fill: parent }   // swallow clicks inside the card
+
+        // keyboard: letters filter, arrows move, Enter applies, R shuffles,
+        // N is next, Backspace clears the filter or goes up a folder, Esc closes
         Item {
             id: keys
             focus: true
-            Keys.onEscapePressed: Popups.open = ""
+            Keys.onEscapePressed: {
+                if (root.filter !== "") root.filter = "";
+                else Popups.open = "";
+            }
             Keys.onReturnPressed: root.apply(root.files[root.sel])
             Keys.onEnterPressed: root.apply(root.files[root.sel])
             Keys.onLeftPressed: root.select(root.sel - 1)
             Keys.onRightPressed: root.select(root.sel + 1)
-            Keys.onUpPressed: root.select(root.sel - 4)
-            Keys.onDownPressed: root.select(root.sel + 4)
+            Keys.onUpPressed: root.select(root.sel - root.columns)
+            Keys.onDownPressed: root.select(root.sel + root.columns)
             Keys.onPressed: e => {
-                if (e.key === Qt.Key_R) { Wallpapers.random(root.target); e.accepted = true; }
-                else if (e.key === Qt.Key_N) { Wallpapers.next(root.target); e.accepted = true; }
-                else if (e.key === Qt.Key_Backspace) { Settings.s.wallpaperDir = root.parentDir(Wallpapers.dir); e.accepted = true; }
+                if (e.key === Qt.Key_Backspace) {
+                    if (root.filter !== "") root.filter = root.filter.slice(0, -1);
+                    else Settings.s.wallpaperDir = root.parentDir(Wallpapers.dir);
+                    e.accepted = true;
+                } else if (e.key === Qt.Key_Home) { root.select(0); e.accepted = true; }
+                else if (e.key === Qt.Key_End) { root.select(root.files.length - 1); e.accepted = true; }
+                else if (e.key === Qt.Key_PageDown) { root.select(root.sel + root.columns * 3); e.accepted = true; }
+                else if (e.key === Qt.Key_PageUp) { root.select(root.sel - root.columns * 3); e.accepted = true; }
+                else if (e.modifiers & Qt.ControlModifier) {
+                    if (e.key === Qt.Key_R) { Wallpapers.random(root.target); e.accepted = true; }
+                    else if (e.key === Qt.Key_N) { Wallpapers.next(root.target); e.accepted = true; }
+                } else if (e.text !== "" && e.text >= " " && e.text.length === 1) {
+                    root.filter += e.text;
+                    root.sel = 0;
+                    e.accepted = true;
+                }
             }
         }
 
@@ -116,7 +154,7 @@ PanelWindow {
             anchors { fill: parent; margins: 16 }
             spacing: 8
 
-            // title, folder, up
+            // title, folder, filter, buttons
             Item {
                 width: parent.width; height: 26
                 DotText {
@@ -127,13 +165,18 @@ PanelWindow {
                 }
                 DotText {
                     anchors { left: title.right; leftMargin: 18; verticalCenter: parent.verticalCenter }
-                    text: root.shortDir(Wallpapers.dir)
-                    px: 0.85; gap: 0.85; color: Theme.mid
+                    text: root.filter !== "" ? "FILTER  " + root.filter.toUpperCase()
+                                             : root.shortDir(Wallpapers.dir)
+                    maxWidth: buttons.x - title.width - 18 - 18 - 12
+                    px: 0.85; gap: 0.85
+                    color: root.filter !== "" ? Theme.fg : Theme.mid
                 }
                 Row {
+                    id: buttons
                     anchors { right: parent.right; verticalCenter: parent.verticalCenter }
                     spacing: 6
                     Chip { label: "UP"; onClicked: Settings.s.wallpaperDir = root.parentDir(Wallpapers.dir) }
+                    Chip { label: "NEXT"; onClicked: Wallpapers.next(root.target) }
                     Chip { label: "SHUFFLE"; onClicked: Wallpapers.random(root.target) }
                     Chip { label: "CLOSE"; onClicked: Popups.open = "" }
                 }
@@ -168,11 +211,12 @@ PanelWindow {
                 width: parent.width
                 height: parent.height - y - footer.height - col.spacing
                 clip: true
-                cellWidth: Math.floor(width / 4)
-                cellHeight: Math.round(cellWidth * 0.5625) + 6
+                cellWidth: Math.floor(width / root.columns)
+                cellHeight: Math.round(cellWidth * 0.5625) + 8
                 model: root.files
                 boundsBehavior: Flickable.StopAtBounds
                 currentIndex: root.sel
+                cacheBuffer: cellHeight * 4
 
                 delegate: Item {
                     id: cell
@@ -184,6 +228,7 @@ PanelWindow {
                     height: grid.cellHeight
 
                     Rectangle {
+                        id: frame
                         anchors { fill: parent; margins: 4 }
                         radius: 10
                         color: "#161616"
@@ -191,34 +236,41 @@ PanelWindow {
                                     : (cell.isSel || wma.containsMouse) ? Theme.fg : Theme.blockBorder
                         border.width: cell.isCurrent || cell.isSel ? 2 : 1
                         clip: true
+                        scale: wma.containsMouse ? 1.03 : 1
+                        Behavior on scale { NumberAnimation { duration: 120 } }
 
                         Image {
                             anchors { fill: parent; margins: 2 }
                             source: "file://" + cell.modelData
                             fillMode: Image.PreserveAspectCrop
-                            sourceSize.width: 360
+                            sourceSize.width: 400
                             asynchronous: true
                             cache: true
                             opacity: status === Image.Ready ? 1 : 0
                             Behavior on opacity { NumberAnimation { duration: 180 } }
                         }
-                        // the one on screen gets a dot in the corner
+                        // the one on screen is tagged
                         Rectangle {
                             visible: cell.isCurrent
                             anchors { top: parent.top; right: parent.right; margins: 8 }
-                            width: 10; height: 10; radius: 5
+                            width: nowLbl.implicitWidth + 12; height: 16; radius: 4
                             color: Theme.red
-                            border.color: "#000000"; border.width: 1
+                            DotText {
+                                id: nowLbl
+                                anchors.centerIn: parent
+                                text: "NOW"
+                                px: 0.7; gap: 0.7; color: "#000000"
+                            }
                         }
-                        // name band, only while hovered or selected
+                        // name band, always there so the pictures can be told apart
                         Rectangle {
                             anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
                             height: 18
-                            visible: wma.containsMouse || cell.isSel
-                            color: "#cc000000"
+                            color: wma.containsMouse || cell.isSel ? "#dd000000" : "#99000000"
                             DotText {
                                 anchors.centerIn: parent
-                                text: root.baseName(cell.modelData).slice(0, 22)
+                                text: root.baseName(cell.modelData)
+                                maxWidth: parent.width - 12
                                 px: 0.7; gap: 0.7
                             }
                         }
@@ -234,7 +286,9 @@ PanelWindow {
 
             DotText {
                 visible: root.files.length === 0
-                text: "NO PICTURES HERE. PUT SOME IN " + root.shortDir(Wallpapers.dir)
+                text: root.filter !== "" ? "NOTHING MATCHES " + root.filter.toUpperCase()
+                                         : "NO PICTURES HERE. PUT SOME IN " + root.shortDir(Wallpapers.dir)
+                maxWidth: parent.width
                 px: 0.9; gap: 0.9; color: Theme.dim
             }
 
@@ -244,9 +298,10 @@ PanelWindow {
                 width: parent.width
                 spacing: 6
 
-                Row {
+                Flow {
+                    width: parent.width
                     spacing: 6
-                    DotText { anchors.verticalCenter: parent.verticalCenter; text: "FILL"; px: 0.85; gap: 0.85; color: Theme.mid; width: 52 }
+                    DotText { text: "FILL"; px: 0.85; gap: 0.85; color: Theme.mid; width: 52; height: 22 }
                     Repeater {
                         model: ["crop", "fit", "stretch", "center", "tile"]
                         delegate: Chip {
@@ -257,13 +312,14 @@ PanelWindow {
                         }
                     }
                     Item { width: 14; height: 1 }
-                    DotText { anchors.verticalCenter: parent.verticalCenter; text: "SET ON"; px: 0.85; gap: 0.85; color: Theme.mid }
+                    DotText { text: "SET ON"; px: 0.85; gap: 0.85; color: Theme.mid; height: 22 }
                     Chip { label: "ALL SCREENS"; on: root.target === ""; onClicked: root.target = "" }
                     Chip { label: root.screenName.toUpperCase(); on: root.target !== ""; onClicked: root.target = root.screenName }
                 }
-                Row {
+                Flow {
+                    width: parent.width
                     spacing: 6
-                    DotText { anchors.verticalCenter: parent.verticalCenter; text: "FX"; px: 0.85; gap: 0.85; color: Theme.mid; width: 52 }
+                    DotText { text: "FX"; px: 0.85; gap: 0.85; color: Theme.mid; width: 52; height: 22 }
                     Repeater {
                         model: ["fade", "wipe", "slide", "zoom", "random"]
                         delegate: Chip {
@@ -274,7 +330,7 @@ PanelWindow {
                         }
                     }
                     Item { width: 14; height: 1 }
-                    DotText { anchors.verticalCenter: parent.verticalCenter; text: "SHUFFLE"; px: 0.85; gap: 0.85; color: Theme.mid }
+                    DotText { text: "SHUFFLE"; px: 0.85; gap: 0.85; color: Theme.mid; height: 22 }
                     Repeater {
                         model: [0, 5, 15, 30, 60]
                         delegate: Chip {
@@ -286,7 +342,8 @@ PanelWindow {
                     }
                 }
                 DotText {
-                    text: "CLICK OR ENTER TO APPLY. R SHUFFLES, N IS NEXT, BACKSPACE GOES UP A FOLDER."
+                    text: "CLICK OR ENTER APPLIES. TYPE TO FILTER. CTRL+R SHUFFLES, CTRL+N IS NEXT, BACKSPACE GOES UP."
+                    maxWidth: parent.width
                     px: 0.7; gap: 0.7; color: Theme.hint
                 }
             }

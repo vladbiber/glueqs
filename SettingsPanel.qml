@@ -9,8 +9,8 @@ PanelWindow {
     id: root
     anchors.top: true
     margins.top: Theme.popupTop
-    implicitWidth: 560
-    implicitHeight: 512
+    implicitWidth: 600
+    implicitHeight: 580
     color: "transparent"
     exclusionMode: ExclusionMode.Ignore
     WlrLayershell.layer: WlrLayer.Overlay
@@ -78,6 +78,7 @@ PanelWindow {
         DotText {
             anchors { left: parent.left; verticalCenter: parent.verticalCenter }
             text: parent.label
+            maxWidth: parent.width - 52
             px: 1.1; gap: 1
             color: Settings.s[parent.key] ? Theme.fg : Theme.mid
         }
@@ -99,6 +100,7 @@ PanelWindow {
         DotText {
             anchors { left: parent.left; verticalCenter: parent.verticalCenter }
             text: srow.label
+            maxWidth: srow.width - 64 - 16 * 6 - 12
             px: 1.1; gap: 1
         }
         DotText {
@@ -122,21 +124,28 @@ PanelWindow {
         border.color: Theme.blockBorder
         border.width: 1
 
-        DotIcon {
-            anchors { top: parent.top; right: parent.right; margins: 14 }
-            name: "x"
-            px: 1.6; gap: 1
-            color: sxArea.containsMouse ? Theme.red : Theme.dim
-            MouseArea {
-                id: sxArea
-                anchors.fill: parent; anchors.margins: -6
-                hoverEnabled: true
-                onClicked: Popups.open = ""
+        // the close button lives in the header strip above the content, so
+        // no tab's first row has to dodge it
+        Item {
+            id: header
+            anchors { top: parent.top; left: parent.left; right: parent.right }
+            height: 34
+            DotIcon {
+                anchors { top: parent.top; right: parent.right; margins: 12 }
+                name: "x"
+                px: 1.6; gap: 1
+                color: sxArea.containsMouse ? Theme.red : Theme.dim
+                MouseArea {
+                    id: sxArea
+                    anchors.fill: parent; anchors.margins: -6
+                    hoverEnabled: true
+                    onClicked: Popups.open = ""
+                }
             }
         }
 
         Row {
-            anchors { fill: parent; margins: 18 }
+            anchors { fill: parent; margins: 18; topMargin: 30 }
             spacing: 18
 
             // sidebar
@@ -175,11 +184,31 @@ PanelWindow {
 
             Rectangle { width: 1; height: parent.height; color: Theme.blockBorder }
 
-            // content
-            Item {
+            // content: every tab is a Column inside one Flickable, so a tab
+            // taller than the panel scrolls with the wheel instead of being
+            // cut off at the bottom. The close button has the top right.
+            Flickable {
                 id: tabArea
                 width: parent.width - 118 - 1 - 36
                 height: parent.height
+                clip: true
+                contentWidth: width
+                contentHeight: tabStack.implicitHeight + 8
+                boundsBehavior: Flickable.StopAtBounds
+                // the tab changed: back to the top
+                Connections {
+                    target: root
+                    function onTabChanged() { tabArea.contentY = 0 }
+                }
+
+            Item {
+                id: tabStack
+                width: tabArea.width
+                implicitHeight: {
+                    let h = 0;
+                    for (const c of children) if (c.visible) h = Math.max(h, c.implicitHeight);
+                    return h;
+                }
 
                 // BAR
                 Column {
@@ -187,17 +216,16 @@ PanelWindow {
                     width: parent.width
                     spacing: 6
 
-                    Item {
-                        width: parent.width; height: 26
-                        DotText {
-                            anchors { left: parent.left; verticalCenter: parent.verticalCenter }
-                            text: "POSITION"
-                            px: 1.1; gap: 1
-                        }
-                        Row {
-                            anchors { right: parent.right; verticalCenter: parent.verticalCenter }
-                            spacing: 4
-                            Repeater {
+                    // room for the close button on the first row
+                    DotText {
+                        text: "POSITION"
+                        px: 1.1; gap: 1
+                        width: parent.width - 28
+                    }
+                    Flow {
+                        width: parent.width
+                        spacing: 4
+                        Repeater {
                                 model: ["top", "bottom", "left", "right"]
                                 delegate: Rectangle {
                                     required property string modelData
@@ -219,13 +247,14 @@ PanelWindow {
                                         onClicked: Settings.s.barPosition = parent.modelData
                                     }
                                 }
-                            }
                         }
                     }
+                    Item { width: 1; height: 2 }
                     ToggleRow { label: "SOLID BLACK BG"; key: "barSolid" }
                     Item { width: 1; height: 4 }
                     DotText {
                         text: "WIDGETS   ARROWS = ORDER   L/C/R = ZONE"
+                        maxWidth: parent.width
                         px: 0.8; gap: 0.8; color: Theme.dim
                     }
 
@@ -422,6 +451,7 @@ PanelWindow {
                         DotText {
                             anchors.centerIn: parent
                             text: "OPEN THE PICKER   (MOD+W)"
+                            maxWidth: parent.width - 16
                             px: 1; gap: 1
                         }
                         MouseArea {
@@ -433,11 +463,13 @@ PanelWindow {
                     }
                     DotText {
                         text: "FOLDER  " + root.shortDir(Wallpapers.dir)
+                        maxWidth: parent.width
                         px: 0.85; gap: 0.85; color: Theme.mid
                     }
                     DotText {
                         text: "NOW  " + (Settings.s.wallpaper === "" ? "NONE"
-                                : root.shortDir(Settings.s.wallpaper).slice(-40))
+                                : Settings.s.wallpaper.slice(Settings.s.wallpaper.lastIndexOf("/") + 1).toUpperCase())
+                        maxWidth: parent.width
                         px: 0.85; gap: 0.85; color: Theme.mid
                     }
                     Item { width: 1; height: 4 }
@@ -473,7 +505,8 @@ PanelWindow {
                     }
                     Item { width: 1; height: 6 }
                     DotText {
-                        text: "THE SHELL PAINTS THE WALLPAPER ITSELF. NO SWWW, NO WAYPAPER."
+                        text: "THE SHELL PAINTS IT. NO SWWW OR WAYPAPER NEEDED."
+                        maxWidth: parent.width
                         px: 0.7; gap: 0.7; color: Theme.hint
                     }
                 }
@@ -566,6 +599,7 @@ PanelWindow {
                         }
                     }
                 }
+            }
             }
         }
 

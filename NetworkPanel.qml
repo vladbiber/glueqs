@@ -194,10 +194,9 @@ PanelWindow {
                             }
                             DotText {
                                 anchors.verticalCenter: parent.verticalCenter
-                                text: {
-                                    const s = wrow.modelData.ssid.toUpperCase();
-                                    return s.length > 17 ? s.slice(0, 16) + "." : s;
-                                }
+                                text: wrow.modelData.ssid.toUpperCase()
+                                // icon, spacing, lock and margins come off the row
+                                maxWidth: wrow.width - 8 - 22 - 8 - 22 - 10
                                 px: 1.2; gap: 1
                                 color: wrow.modelData.inUse
                                        || root.busySsid === wrow.modelData.ssid ? Theme.fg : Theme.mid

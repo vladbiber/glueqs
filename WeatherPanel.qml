@@ -64,10 +64,12 @@ PanelWindow {
                     DotText { text: Weather.temp.toUpperCase(); px: 3; gap: 1.4 }
                     DotText {
                         text: Weather.condition.toUpperCase()
+                        maxWidth: content.width - 130
                         px: 1.1; gap: 1; color: Theme.mid
                     }
                     DotText {
                         text: (Weather.area + " " + Weather.country).toUpperCase()
+                        maxWidth: content.width - 130
                         px: 0.9; gap: 0.9; color: Theme.red
                     }
                 }

@@ -87,7 +87,8 @@ PanelWindow {
                                 width: parent.width; height: 8
                                 DotText {
                                     anchors.left: parent.left
-                                    text: root.trunc(nrow.modelData.app, 20)
+                                    text: nrow.modelData.app.toUpperCase()
+                                    maxWidth: parent.width - 60
                                     px: 0.8; gap: 0.8; color: Theme.red
                                 }
                                 DotText {
@@ -97,12 +98,14 @@ PanelWindow {
                                 }
                             }
                             DotText {
-                                text: root.trunc(nrow.modelData.summary.toUpperCase(), 28)
+                                text: nrow.modelData.summary.toUpperCase()
+                                maxWidth: ncol.width
                                 px: 1.1; gap: 1
                             }
                             DotText {
                                 visible: nrow.modelData.body !== ""
-                                text: root.trunc(nrow.modelData.body.toUpperCase(), 29)
+                                text: nrow.modelData.body.toUpperCase()
+                                maxWidth: ncol.width
                                 px: 0.9; gap: 0.9; color: Theme.mid
                             }
                         }

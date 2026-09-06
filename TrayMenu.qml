@@ -170,6 +170,7 @@ PanelWindow {
                                 verticalCenter: parent.verticalCenter
                             }
                             text: root.label(row.modelData)
+                            maxWidth: width
                             px: root.rowPx; gap: 1
                             color: row.modelData.enabled ? Theme.fg : Theme.offDot
                         }
