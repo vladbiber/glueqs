@@ -38,6 +38,10 @@ Singleton {
             property bool showVolume: true
             property bool showBattery: true
             property bool showBrightness: true
+            property bool showLevels: true
+            property int idleOffMin: 10          // minutes idle before the backlight goes to 0, 0 = never
+            property int idleSuspendMin: 0       // minutes idle before suspend, 0 = never
+            property bool idleNotWhileMedia: true
             property bool showWeather: true
             property bool showLauncher: true
             property bool showWorkspaces: true
@@ -53,7 +57,7 @@ Singleton {
             property bool barSolid: false
             property string barLeft: "settings,launcher,workspaces,tray,media"
             property string barCenter: "weather,clock,notifs"
-            property string barRight: "netspeed,network,volume,brightness,battery,power"
+            property string barRight: "netspeed,network,levels,battery,power"
             property int osdDuration: 1600
             property int volumeStep: 5
             property string weatherLocation: ""
@@ -93,10 +97,17 @@ Singleton {
                 c.push("notifs");
                 json.barCenter = c.join(",");
             }
-            if (!all.includes("brightness")) {
+            // the combined levels tile takes the volume tile's place unless
+            // the separate tiles were chosen on purpose
+            if (!all.includes("levels") && !all.includes("brightness")) {
+                for (const z of ["barLeft", "barCenter", "barRight"]) {
+                    const l = json[z].split(",").filter(x => x !== "");
+                    const i = l.indexOf("volume");
+                    if (i >= 0) { l[i] = "levels"; json[z] = l.join(","); return; }
+                }
                 const r = json.barRight.split(",").filter(x => x !== "");
                 const i = r.indexOf("battery");
-                r.splice(i >= 0 ? i : r.length, 0, "brightness");
+                r.splice(i >= 0 ? i : r.length, 0, "levels");
                 json.barRight = r.join(",");
             }
         }

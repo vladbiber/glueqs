@@ -6,10 +6,12 @@ Column {
     id: root
     width: parent.width
     spacing: 12
+    topPadding: pad; bottomPadding: pad; leftPadding: pad; rightPadding: pad
+    property int pad: 0
     readonly property int pct: Brightness.percent
 
     Row {
-        width: parent.width
+        width: parent.width - root.pad * 2
         spacing: 12
         DotIcon {
             anchors.verticalCenter: parent.verticalCenter
@@ -54,7 +56,7 @@ Column {
     }
 
     Text {
-        width: parent.width
+        width: parent.width - root.pad * 2
         wrapMode: Text.WordWrap
         text: root.pct === 0
             ? "The panel is off. Press your brightness-up key (it runs gluewc-backlight up) or click a preset here to bring it back."
