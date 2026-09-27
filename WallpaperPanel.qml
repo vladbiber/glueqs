@@ -3,11 +3,13 @@ import Quickshell.Wayland
 import QtQuick
 import Qt.labs.folderlistmodel
 
-// The wallpaper picker: a centred grid of the pictures in a folder, the one on
-// screen marked in the accent, applied with one click or Enter. Typing filters
-// the names; fill mode, transition, shuffle and "all screens or just this one"
-// sit underneath. Opened from the bar's settings, Mod+W, or
-// `qs -c glueqs ipc call glueqs wallpaper`.
+// The wallpaper picker and browser: breadcrumbs, the subfolders, a typed
+// path and a centred grid of the pictures in the folder being looked at, the
+// one on screen marked in the accent, applied with one click or Enter.
+// Browsing does not move the shuffle folder until USE THIS FOLDER is
+// pressed. Typing filters the names; fill mode, transition, shuffle and
+// "all screens or just this one" sit underneath. Opened from the bar's
+// settings, Mod+W, or `qs -c glueqs ipc call glueqs wallpaper`.
 PanelWindow {
     id: root
     anchors { top: true; bottom: true; left: true; right: true }
@@ -22,12 +24,36 @@ PanelWindow {
     property string target: ""
     property int sel: -1
     property string filter: ""
+    // the folder on show; empty means the shuffle folder from settings
+    property string browseDir: ""
+    readonly property string dir: browseDir !== "" ? browseDir : Wallpapers.dir
 
     readonly property string current: Wallpapers.pathFor(root.screenName)
+    property var allFiles: []
     readonly property var files: {
         const q = filter.toLowerCase();
-        return q === "" ? Wallpapers.files
-                        : Wallpapers.files.filter(p => root.baseName(p).toLowerCase().includes(q));
+        return q === "" ? allFiles : allFiles.filter(p => root.baseName(p).toLowerCase().includes(q));
+    }
+    readonly property var crumbs: {
+        const h = Wallpapers.homeDir;
+        const out = [{ label: "/", path: "/" }];
+        let acc = "";
+        for (const part of root.dir.split("/").filter(x => x !== "")) {
+            acc += "/" + part;
+            out.push({ label: acc === h ? "~" : part.toUpperCase(), path: acc });
+        }
+        return out;
+    }
+    function go(path) {
+        let p = path.trim();
+        if (p === "") return;
+        if (p.startsWith("~")) p = Wallpapers.homeDir + p.slice(1);
+        if (p.length > 1 && p.endsWith("/")) p = p.slice(0, -1);
+        if (Wallpapers.isImage(p)) { root.apply(p); return; }
+        root.browseDir = p;
+        root.filter = "";
+        root.sel = 0;
+        keys.forceActiveFocus();
     }
 
     // the card sits in the middle and takes what the screen allows
@@ -38,11 +64,29 @@ PanelWindow {
     onVisibleChanged: {
         if (visible) {
             filter = "";
+            browseDir = "";
             Wallpapers.refresh();
-            sel = Math.max(0, Wallpapers.files.indexOf(current));
+            sel = Math.max(0, allFiles.indexOf(current));
             keys.forceActiveFocus();
             grid.positionViewAtIndex(sel, GridView.Contain);
         }
+    }
+
+    // the pictures of the folder on show
+    FolderListModel {
+        id: pics
+        folder: "file://" + root.dir
+        showDirs: false
+        showDotAndDotDot: false
+        sortField: FolderListModel.Name
+        nameFilters: Wallpapers.extensions.map(e => "*." + e).concat(Wallpapers.extensions.map(e => "*." + e.toUpperCase()))
+        onCountChanged: root.refreshFiles()
+        onStatusChanged: if (status === FolderListModel.Ready) root.refreshFiles()
+    }
+    function refreshFiles() {
+        const out = [];
+        for (let i = 0; i < pics.count; i++) out.push(pics.get(i, "filePath"));
+        if (out.join("\n") !== allFiles.join("\n")) allFiles = out;
     }
 
     function shortDir(p) {
@@ -102,6 +146,19 @@ PanelWindow {
         onClicked: Popups.open = ""
     }
 
+    // GLUEQS_SHOT_DIR + GLUEQS_SHOT_WALL=1 grabs the browser for screenshots
+    Timer {
+        running: (Quickshell.env("GLUEQS_SHOT_DIR") ?? "") !== "" && (Quickshell.env("GLUEQS_SHOT_WALL") ?? "") !== ""
+        interval: 4500
+        onTriggered: { Popups.open = "wallpaper"; wallShot.start(); }
+    }
+    Timer {
+        id: wallShot
+        interval: 2500
+        onTriggered: content.grabToImage(res =>
+            res.saveToFile(Quickshell.env("GLUEQS_SHOT_DIR") + "/wallpaper-" + root.screenName + ".png"))
+    }
+
     Rectangle {
         id: content
         anchors.centerIn: parent
@@ -132,7 +189,7 @@ PanelWindow {
             Keys.onPressed: e => {
                 if (e.key === Qt.Key_Backspace) {
                     if (root.filter !== "") root.filter = root.filter.slice(0, -1);
-                    else Settings.s.wallpaperDir = root.parentDir(Wallpapers.dir);
+                    else root.go(root.parentDir(root.dir));
                     e.accepted = true;
                 } else if (e.key === Qt.Key_Home) { root.select(0); e.accepted = true; }
                 else if (e.key === Qt.Key_End) { root.select(root.files.length - 1); e.accepted = true; }
@@ -165,27 +222,67 @@ PanelWindow {
                 }
                 DotText {
                     anchors { left: title.right; leftMargin: 18; verticalCenter: parent.verticalCenter }
-                    text: root.filter !== "" ? "FILTER  " + root.filter.toUpperCase()
-                                             : root.shortDir(Wallpapers.dir)
+                    visible: root.filter !== ""
+                    text: "FILTER  " + root.filter.toUpperCase()
                     maxWidth: buttons.x - title.width - 18 - 18 - 12
                     px: 0.85; gap: 0.85
-                    color: root.filter !== "" ? Theme.fg : Theme.mid
                 }
                 Row {
                     id: buttons
                     anchors { right: parent.right; verticalCenter: parent.verticalCenter }
                     spacing: 6
-                    Chip { label: "UP"; onClicked: Settings.s.wallpaperDir = root.parentDir(Wallpapers.dir) }
                     Chip { label: "NEXT"; onClicked: Wallpapers.next(root.target) }
                     Chip { label: "SHUFFLE"; onClicked: Wallpapers.random(root.target) }
                     Chip { label: "CLOSE"; onClicked: Popups.open = "" }
                 }
             }
 
+            // where we are: breadcrumbs, a typed path, and the shuffle folder switch
+            Flow {
+                width: parent.width
+                spacing: 4
+                Chip { label: "UP"; onClicked: root.go(root.parentDir(root.dir)) }
+                Chip { label: "PICTURES"; onClicked: root.go(Wallpapers.homeDir + "/Pictures") }
+                Item { width: 6; height: 1 }
+                Repeater {
+                    model: root.crumbs
+                    delegate: Row {
+                        required property var modelData
+                        required property int index
+                        spacing: 4
+                        DotText { visible: index > 0; anchors.verticalCenter: parent.verticalCenter; text: ">"; px: 0.7; gap: 0.7; color: Theme.mid }
+                        Chip {
+                            label: modelData.label
+                            on: index === root.crumbs.length - 1
+                            onClicked: root.go(modelData.path)
+                        }
+                    }
+                }
+            }
+            Row {
+                width: parent.width
+                spacing: 8
+                GwField {
+                    id: pathField
+                    width: parent.width - useFolder.width - 8
+                    height: 28
+                    text: root.dir
+                    placeholder: "type a folder, or a picture's path, and press Enter"
+                    onCommitted: v => root.go(v)
+                }
+                Chip {
+                    id: useFolder
+                    anchors.verticalCenter: parent.verticalCenter
+                    label: root.dir === Wallpapers.dir ? "SHUFFLE FOLDER" : "USE THIS FOLDER"
+                    on: root.dir === Wallpapers.dir
+                    onClicked: Settings.s.wallpaperDir = root.dir
+                }
+            }
+
             // subfolders, click to go in
             FolderListModel {
                 id: dirs
-                folder: "file://" + Wallpapers.dir
+                folder: "file://" + root.dir
                 showFiles: false
                 showDotAndDotDot: false
                 sortField: FolderListModel.Name
@@ -199,8 +296,8 @@ PanelWindow {
                     delegate: Chip {
                         required property string fileName
                         required property string filePath
-                        label: fileName.toUpperCase()
-                        onClicked: Settings.s.wallpaperDir = filePath
+                        label: "/ " + fileName.toUpperCase()
+                        onClicked: root.go(filePath)
                     }
                 }
             }
@@ -287,7 +384,7 @@ PanelWindow {
             DotText {
                 visible: root.files.length === 0
                 text: root.filter !== "" ? "NOTHING MATCHES " + root.filter.toUpperCase()
-                                         : "NO PICTURES HERE. PUT SOME IN " + root.shortDir(Wallpapers.dir)
+                                         : "NO PICTURES IN " + root.shortDir(root.dir) + ". OPEN A FOLDER ABOVE OR TYPE A PATH."
                 maxWidth: parent.width
                 px: 0.9; gap: 0.9; color: Theme.dim
             }
@@ -342,7 +439,7 @@ PanelWindow {
                     }
                 }
                 DotText {
-                    text: "CLICK OR ENTER APPLIES. TYPE TO FILTER. CTRL+R SHUFFLES, CTRL+N IS NEXT, BACKSPACE GOES UP."
+                    text: "CLICK OR ENTER APPLIES. TYPE TO FILTER. CTRL+R SHUFFLES, CTRL+N IS NEXT, BACKSPACE GOES UP A FOLDER."
                     maxWidth: parent.width
                     px: 0.7; gap: 0.7; color: Theme.hint
                 }
