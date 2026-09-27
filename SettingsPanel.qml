@@ -42,13 +42,15 @@ PanelWindow {
         settings: "Settings", launcher: "Launcher", workspaces: "Workspaces",
         weather: "Weather", clock: "Clock", media: "Media", netspeed: "Net speed",
         network: "Wi-Fi and Bluetooth", volume: "Volume", battery: "Battery", power: "Power",
-        tray: "Tray", notifs: "Notifications", brightness: "Brightness"
+        tray: "Tray", notifs: "Notifications", brightness: "Brightness",
+        levels: "Volume and brightness"
     })
     readonly property var widgetKeys: ({
         launcher: "showLauncher", workspaces: "showWorkspaces", weather: "showWeather",
         clock: "showClock", media: "showMedia", netspeed: "showNetSpeed",
         network: "showNetwork", volume: "showVolume", battery: "showBattery",
-        power: "showPower", tray: "showTray", notifs: "showNotifs", brightness: "showBrightness"
+        power: "showPower", tray: "showTray", notifs: "showNotifs", brightness: "showBrightness",
+        levels: "showLevels"
     })
     readonly property var zoneKeys: ["barLeft", "barCenter", "barRight"]
     readonly property var orderRows: {
@@ -219,25 +221,28 @@ PanelWindow {
                         width: parent.width
                         spacing: 0
                         GwTitle { first: true; text: "BAR"; sub: "Where the bar sits and what is on it. Arrows change the order, L / C / R moves a widget between the three zones." }
-                        GwRow { label: "Position"; hint: "Which screen edge"
-                            GwChoice {
-                                bound: true; value: Settings.s.barPosition
-                                options: [{ v: "top", label: "TOP" }, { v: "bottom", label: "BOTTOM" }, { v: "left", label: "LEFT" }, { v: "right", label: "RIGHT" }]
-                                onPicked: v => Settings.s.barPosition = v
+                        GwCard {
+                            GwRow { label: "Position"; hint: "Which screen edge"
+                                GwChoice {
+                                    bound: true; value: Settings.s.barPosition
+                                    options: [{ v: "top", label: "TOP" }, { v: "bottom", label: "BOTTOM" }, { v: "left", label: "LEFT" }, { v: "right", label: "RIGHT" }]
+                                    onPicked: v => Settings.s.barPosition = v
+                                }
                             }
-                        }
-                        SToggle { label: "Solid black background"; hint: "Instead of see-through between the tiles"; skey: "barSolid" }
+                            SToggle { label: "Solid black background"; hint: "Instead of see-through between the tiles"; skey: "barSolid" }
 
+                        }
                         GwTitle { text: "WIDGETS" }
+                        GwCard {
                         Repeater {
                             model: root.orderRows
                             delegate: Item {
                                 id: orow
                                 required property var modelData
                                 readonly property string vkey: root.widgetKeys[modelData.id] ?? ""
-                                width: parent.width; height: 40
+                                width: parent.width; height: 44
                                 Row {
-                                    anchors { left: parent.left; verticalCenter: parent.verticalCenter }
+                                    anchors { left: parent.left; leftMargin: 14; verticalCenter: parent.verticalCenter }
                                     spacing: 6
                                     GwButton { label: "↑"; small: true; implicitWidth: 26; onClicked: root.moveWidget(orow.modelData.id, orow.modelData.zone, -1) }
                                     GwButton { label: "↓"; small: true; implicitWidth: 26; onClicked: root.moveWidget(orow.modelData.id, orow.modelData.zone, 1) }
@@ -250,7 +255,7 @@ PanelWindow {
                                     }
                                 }
                                 Row {
-                                    anchors { right: parent.right; verticalCenter: parent.verticalCenter }
+                                    anchors { right: parent.right; rightMargin: 14; verticalCenter: parent.verticalCenter }
                                     spacing: 10
                                     GwButton {
                                         anchors.verticalCenter: parent.verticalCenter
@@ -265,8 +270,9 @@ PanelWindow {
                                     }
                                     Item { visible: orow.vkey === ""; width: 30; height: 1 }
                                 }
-                                Rectangle { anchors { left: parent.left; right: parent.right; bottom: parent.bottom } height: 1; color: "#1a1a1a" }
+                                Rectangle { anchors { left: parent.left; right: parent.right; bottom: parent.bottom; leftMargin: 14; rightMargin: 14 } height: 1; color: "#202020" }
                             }
+                        }
                         }
                     }
 
@@ -276,8 +282,10 @@ PanelWindow {
                         width: parent.width
                         spacing: 0
                         GwTitle { first: true; text: "CLOCK"; sub: "Click the clock in the bar for the calendar." }
-                        SToggle { label: "12-hour format"; skey: "clock12h" }
-                        SToggle { label: "Show the date"; skey: "showDate" }
+                        GwCard {
+                            SToggle { label: "12-hour format"; skey: "clock12h" }
+                            SToggle { label: "Show the date"; skey: "showDate" }
+                        }
                     }
 
                     // AUDIO
@@ -286,14 +294,16 @@ PanelWindow {
                         width: parent.width
                         spacing: 0
                         GwTitle { first: true; text: "AUDIO"; sub: "The volume tile, its OSD and the media visualiser. Equaliser presets live in the media panel." }
-                        SToggle { label: "Volume OSD"; hint: "A pop-up when the volume changes"; skey: "osdEnabled" }
-                        GwRow { label: "OSD time"; hint: "How long the pop-up stays"
-                            GwNumber { bound: true; value: Settings.s.osdDuration; min: 800; max: 3200; step: 100; unit: "ms"; onChanged: v => Settings.s.osdDuration = Math.round(v) }
+                        GwCard {
+                            SToggle { label: "Volume OSD"; hint: "A pop-up when the volume changes"; skey: "osdEnabled" }
+                            GwRow { label: "OSD time"; hint: "How long the pop-up stays"
+                                GwNumber { bound: true; value: Settings.s.osdDuration; min: 800; max: 3200; step: 100; unit: "ms"; onChanged: v => Settings.s.osdDuration = Math.round(v) }
+                            }
+                            GwRow { label: "Scroll step"; hint: "Per wheel notch on the volume tile"
+                                GwNumber { bound: true; value: Settings.s.volumeStep; min: 1; max: 10; unit: "%"; onChanged: v => Settings.s.volumeStep = Math.round(v) }
+                            }
+                            SToggle { label: "Visualiser"; hint: "The live spectrum in the media panel"; skey: "eqEnabled" }
                         }
-                        GwRow { label: "Scroll step"; hint: "Per wheel notch on the volume tile"
-                            GwNumber { bound: true; value: Settings.s.volumeStep; min: 1; max: 10; unit: "%"; onChanged: v => Settings.s.volumeStep = Math.round(v) }
-                        }
-                        SToggle { label: "Visualiser"; hint: "The live spectrum in the media panel"; skey: "eqEnabled" }
                     }
 
                     // WEATHER
@@ -302,17 +312,19 @@ PanelWindow {
                         width: parent.width
                         spacing: 0
                         GwTitle { first: true; text: "WEATHER"; sub: "Current conditions from wttr.in through curl." }
-                        SToggle { label: "Show weather"; skey: "showWeather" }
-                        GwRow { label: "Location"; hint: "A city name. Empty finds you by IP address."
-                            GwField {
-                                width: 200
-                                text: Settings.s.weatherLocation
-                                placeholder: "auto (IP)"
-                                onCommitted: v => Settings.s.weatherLocation = v.trim()
+                        GwCard {
+                            SToggle { label: "Show weather"; skey: "showWeather" }
+                            GwRow { label: "Location"; hint: "A city name. Empty finds you by IP address."
+                                GwField {
+                                    width: 200
+                                    text: Settings.s.weatherLocation
+                                    placeholder: "auto (IP)"
+                                    onCommitted: v => Settings.s.weatherLocation = v.trim()
+                                }
                             }
-                        }
-                        GwRow { label: "Refresh"
-                            GwNumber { bound: true; value: Settings.s.weatherInterval; min: 5; max: 60; step: 5; unit: "min"; onChanged: v => Settings.s.weatherInterval = Math.round(v) }
+                            GwRow { label: "Refresh"
+                                GwNumber { bound: true; value: Settings.s.weatherInterval; min: 5; max: 60; step: 5; unit: "min"; onChanged: v => Settings.s.weatherInterval = Math.round(v) }
+                            }
                         }
                     }
 
@@ -322,39 +334,41 @@ PanelWindow {
                         width: parent.width
                         spacing: 0
                         GwTitle { first: true; text: "WALLPAPER"; sub: "The shell paints it itself, no swww or waypaper needed. The picker browses folders, shows thumbnails and takes a typed path." }
-                        GwRow { label: "Picture"; hint: Settings.s.wallpaper === "" ? "none yet" : root.shortDir(Settings.s.wallpaper)
-                            GwButton { label: "OPEN THE PICKER   (MOD+W)"; active: true; onClicked: Popups.open = "wallpaper" }
-                        }
-                        GwRow { label: "Shuffle folder"; hint: root.shortDir(Wallpapers.dir) + "   ·   " + Wallpapers.files.length + " pictures"
-                            GwField {
-                                width: 220
-                                text: Settings.s.wallpaperDir
-                                placeholder: "~/Pictures/Wallpapers"
-                                onCommitted: v => { let p = v.trim(); if (p.startsWith("~")) p = root.homeDir + p.slice(1); Settings.s.wallpaperDir = p; }
+                        GwCard {
+                            GwRow { label: "Picture"; hint: Settings.s.wallpaper === "" ? "none yet" : root.shortDir(Settings.s.wallpaper)
+                                GwButton { label: "OPEN THE PICKER   (MOD+W)"; active: true; onClicked: Popups.open = "wallpaper" }
                             }
-                        }
-                        GwRow { label: "Fill"
-                            GwChoice {
-                                bound: true; value: Settings.s.wallpaperFill
-                                options: [{ v: "crop", label: "CROP" }, { v: "fit", label: "FIT" }, { v: "stretch", label: "STRETCH" }, { v: "center", label: "CENTER" }, { v: "tile", label: "TILE" }]
-                                onPicked: v => Settings.s.wallpaperFill = v
+                            GwRow { label: "Shuffle folder"; hint: root.shortDir(Wallpapers.dir) + "   ·   " + Wallpapers.files.length + " pictures"
+                                GwField {
+                                    width: 220
+                                    text: Settings.s.wallpaperDir
+                                    placeholder: "~/Pictures/Wallpapers"
+                                    onCommitted: v => { let p = v.trim(); if (p.startsWith("~")) p = root.homeDir + p.slice(1); Settings.s.wallpaperDir = p; }
+                                }
                             }
-                        }
-                        GwRow { label: "Transition"
-                            GwChoice {
-                                bound: true; value: Settings.s.wallpaperTransition
-                                options: [{ v: "fade", label: "FADE" }, { v: "wipe", label: "WIPE" }, { v: "slide", label: "SLIDE" }, { v: "zoom", label: "ZOOM" }, { v: "random", label: "RANDOM" }]
-                                onPicked: v => Settings.s.wallpaperTransition = v
+                            GwRow { label: "Fill"
+                                GwChoice {
+                                    bound: true; value: Settings.s.wallpaperFill
+                                    options: [{ v: "crop", label: "CROP" }, { v: "fit", label: "FIT" }, { v: "stretch", label: "STRETCH" }, { v: "center", label: "CENTER" }, { v: "tile", label: "TILE" }]
+                                    onPicked: v => Settings.s.wallpaperFill = v
+                                }
                             }
-                        }
-                        GwRow { label: "Transition time"
-                            GwNumber { bound: true; value: Settings.s.wallpaperTransitionMs; min: 0; max: 3000; step: 100; unit: "ms"; onChanged: v => Settings.s.wallpaperTransitionMs = Math.round(v) }
-                        }
-                        GwRow { label: "Shuffle every"; hint: "0 turns the random change off"
-                            GwNumber { bound: true; value: Settings.s.wallpaperRandomMin; min: 0; max: 240; step: 5; unit: "min"; onChanged: v => Settings.s.wallpaperRandomMin = Math.round(v) }
-                        }
-                        GwRow { label: "Behind the picture"; hint: "Also the colour on its own without one"
-                            Swatches { skey: "wallpaperSolid"; colors: ["#000000", "#241f31", "#1a1a2e", "#101820", "#f2f2f2"] }
+                            GwRow { label: "Transition"
+                                GwChoice {
+                                    bound: true; value: Settings.s.wallpaperTransition
+                                    options: [{ v: "fade", label: "FADE" }, { v: "wipe", label: "WIPE" }, { v: "slide", label: "SLIDE" }, { v: "zoom", label: "ZOOM" }, { v: "random", label: "RANDOM" }]
+                                    onPicked: v => Settings.s.wallpaperTransition = v
+                                }
+                            }
+                            GwRow { label: "Transition time"
+                                GwNumber { bound: true; value: Settings.s.wallpaperTransitionMs; min: 0; max: 3000; step: 100; unit: "ms"; onChanged: v => Settings.s.wallpaperTransitionMs = Math.round(v) }
+                            }
+                            GwRow { label: "Shuffle every"; hint: "0 turns the random change off"
+                                GwNumber { bound: true; value: Settings.s.wallpaperRandomMin; min: 0; max: 240; step: 5; unit: "min"; onChanged: v => Settings.s.wallpaperRandomMin = Math.round(v) }
+                            }
+                            GwRow { label: "Behind the picture"; hint: "Also the colour on its own without one"
+                                Swatches { skey: "wallpaperSolid"; colors: ["#000000", "#241f31", "#1a1a2e", "#101820", "#f2f2f2"] }
+                            }
                         }
                     }
 
@@ -363,20 +377,7 @@ PanelWindow {
                         visible: root.tab === 5
                         width: parent.width
                         spacing: 0
-                        GwTitle { first: true; text: "BRIGHTNESS"; sub: "The panel backlight. The bar has the same slider under the brightness tile." }
-                        Item { width: 1; height: 14 }
-                        Loader {
-                            width: parent.width
-                            active: Brightness.available
-                            sourceComponent: BrightnessControls { width: parent.width }
-                        }
-                        Note {
-                            visible: !Brightness.available
-                            text: "No backlight under /sys/class/backlight on this machine, so there is nothing to dim from here."
-                        }
-                        GwTitle { visible: Gluewc.available; text: "MONITORS"; sub: "Layout, resolution, scale and mirroring are compositor settings." }
-                        Item { visible: Gluewc.available; width: 1; height: 12 }
-                        GwButton { visible: Gluewc.available; label: "OPEN GLUEWC MONITORS  >"; active: true; onClicked: { Popups.gluewcPage = 7; Popups.open = "gluewc"; } }
+                        DisplayControls {}
                     }
 
                     // THEME
@@ -385,20 +386,22 @@ PanelWindow {
                         width: parent.width
                         spacing: 0
                         GwTitle { first: true; text: "THEME"; sub: "Black, white and one accent." }
-                        GwRow { label: "Accent"
-                            Swatches { skey: "accent"; colors: ["#d71921", "#f2f2f2", "#2b7de3", "#2ec46b", "#f5c518"] }
-                        }
-                        GwRow { label: "Custom accent"; hint: "Any hex colour"
-                            GwField {
-                                width: 110
-                                text: Settings.s.accent
-                                onCommitted: v => { const c = v.trim(); if (/^#[0-9a-fA-F]{6}$/.test(c)) Settings.s.accent = c; }
+                        GwCard {
+                            GwRow { label: "Accent"
+                                Swatches { skey: "accent"; colors: ["#d71921", "#f2f2f2", "#2b7de3", "#2ec46b", "#f5c518"] }
                             }
+                            GwRow { label: "Custom accent"; hint: "Any hex colour"
+                                GwField {
+                                    width: 110
+                                    text: Settings.s.accent
+                                    onCommitted: v => { const c = v.trim(); if (/^#[0-9a-fA-F]{6}$/.test(c)) Settings.s.accent = c; }
+                                }
+                            }
+                            GwRow { label: "UI scale"; hint: "Bar, tiles and dot fonts"
+                                GwNumber { bound: true; value: Settings.s.scale; min: 0.85; max: 1.3; step: 0.05; decimals: 2; unit: "×"; onChanged: v => Settings.s.scale = Math.round(v * 20) / 20 }
+                            }
+                            SToggle { label: "Dot-matrix font"; hint: "Off shows plain text in the bar instead of dots"; skey: "dotFont" }
                         }
-                        GwRow { label: "UI scale"; hint: "Bar, tiles and dot fonts"
-                            GwNumber { bound: true; value: Settings.s.scale; min: 0.85; max: 1.3; step: 0.05; decimals: 2; unit: "×"; onChanged: v => Settings.s.scale = Math.round(v * 20) / 20 }
-                        }
-                        SToggle { label: "Dot-matrix font"; hint: "Off shows plain text in the bar instead of dots"; skey: "dotFont" }
                     }
 
                     // ABOUT
@@ -423,7 +426,7 @@ PanelWindow {
                                 Settings.s.barSolid = false;
                                 Settings.s.barLeft = "settings,launcher,workspaces,tray,media";
                                 Settings.s.barCenter = "weather,clock,notifs";
-                                Settings.s.barRight = "netspeed,network,volume,brightness,battery,power";
+                                Settings.s.barRight = "netspeed,network,levels,battery,power";
                             }
                         }
                         Note { text: "Accent, scale, position and the widget zones go back to the defaults. Everything else stays." }

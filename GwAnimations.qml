@@ -18,11 +18,12 @@ Column {
             const p = Gluewc.get(key).split(",").map(parseFloat);
             return p.length === 4 && !p.some(isNaN) ? p : [0.25, 0.1, 0.25, 1];
         }
+        readonly property bool last: parent && parent.children && parent.children[parent.children.length - 1] === crow
         width: parent.width
-        implicitHeight: 96
+        implicitHeight: 104
         Column {
-            anchors { left: parent.left; verticalCenter: parent.verticalCenter }
-            width: parent.width - 96 - 24
+            anchors { left: parent.left; leftMargin: 14; verticalCenter: parent.verticalCenter }
+            width: parent.width - 96 - 24 - 28
             spacing: 6
             Text { text: crow.label; color: Theme.fg; font.family: Theme.uiFont; font.pixelSize: 13; font.weight: Font.Medium }
             Text {
@@ -48,7 +49,7 @@ Column {
             }
         }
         Rectangle {
-            anchors { right: parent.right; verticalCenter: parent.verticalCenter }
+            anchors { right: parent.right; rightMargin: 14; verticalCenter: parent.verticalCenter }
             width: 96; height: 72
             radius: 8
             color: "#0a0a0a"
@@ -72,30 +73,34 @@ Column {
                 }
             }
         }
-        Rectangle { anchors { left: parent.left; right: parent.right; bottom: parent.bottom } height: 1; color: "#1a1a1a" }
+        Rectangle { visible: !crow.last; anchors { left: parent.left; right: parent.right; bottom: parent.bottom; leftMargin: 14; rightMargin: 14 } height: 1; color: "#202020" }
     }
 
     GwTitle { first: true; text: "MOTION"; sub: "Window moves, workspace switches and the overview all follow these." }
-    GwRow { label: "Animations"; key: "animations"
-        GwToggle { key: "animations" } }
-    GwRow { label: "Duration"; hint: "Moves, resizes, workspace switches"; key: "animation_duration"; unit: "ms"
-        GwNumber { key: "animation_duration"; min: 0; max: 1500; step: 20; unit: "ms" } }
-
+    GwCard {
+        GwRow { label: "Animations"; key: "animations"
+            GwToggle { key: "animations" } }
+        GwRow { label: "Duration"; hint: "Moves, resizes, workspace switches"; key: "animation_duration"; unit: "ms"
+            GwNumber { key: "animation_duration"; min: 0; max: 1500; step: 20; unit: "ms" } }
+    }
     GwTitle { text: "OPENING"; sub: "zoom pops the window out of its own centre, slide brings it in from below, fade is opacity only." }
-    GwRow { label: "Style"; key: "animation_type_open"
-        GwChoice { key: "animation_type_open"; options: page.types } }
-    GwRow { label: "Duration"; key: "animation_duration_open"; unit: "ms"
-        GwNumber { key: "animation_duration_open"; min: 0; max: 1500; step: 20; unit: "ms" } }
-    GwRow { label: "Start size"; hint: "How small a zoomed window starts, as a share of its final size"; key: "zoom_initial_ratio"
-        GwNumber { key: "zoom_initial_ratio"; min: 0.05; max: 1; step: 0.02; decimals: 2 } }
-    CurveRow { key: "animation_curve_open"; label: "Curve" }
-
+    GwCard {
+        GwRow { label: "Style"; key: "animation_type_open"
+            GwChoice { key: "animation_type_open"; options: page.types } }
+        GwRow { label: "Duration"; key: "animation_duration_open"; unit: "ms"
+            GwNumber { key: "animation_duration_open"; min: 0; max: 1500; step: 20; unit: "ms" } }
+        GwRow { label: "Start size"; hint: "How small a zoomed window starts, as a share of its final size"; key: "zoom_initial_ratio"
+            GwNumber { key: "zoom_initial_ratio"; min: 0.05; max: 1; step: 0.02; decimals: 2 } }
+        CurveRow { key: "animation_curve_open"; label: "Curve" }
+    }
     GwTitle { text: "CLOSING" }
-    GwRow { label: "Style"; key: "animation_type_close"
-        GwChoice { key: "animation_type_close"; options: page.types } }
-    GwRow { label: "Duration"; key: "animation_duration_close"; unit: "ms"
-        GwNumber { key: "animation_duration_close"; min: 0; max: 1500; step: 20; unit: "ms" } }
-    GwRow { label: "End size"; hint: "How small a zoomed window ends"; key: "zoom_end_ratio"
-        GwNumber { key: "zoom_end_ratio"; min: 0.05; max: 1; step: 0.02; decimals: 2 } }
-    CurveRow { key: "animation_curve_close"; label: "Curve" }
+    GwCard {
+        GwRow { label: "Style"; key: "animation_type_close"
+            GwChoice { key: "animation_type_close"; options: page.types } }
+        GwRow { label: "Duration"; key: "animation_duration_close"; unit: "ms"
+            GwNumber { key: "animation_duration_close"; min: 0; max: 1500; step: 20; unit: "ms" } }
+        GwRow { label: "End size"; hint: "How small a zoomed window ends"; key: "zoom_end_ratio"
+            GwNumber { key: "zoom_end_ratio"; min: 0.05; max: 1; step: 0.02; decimals: 2 } }
+        CurveRow { key: "animation_curve_close"; label: "Curve" }
+    }
 }

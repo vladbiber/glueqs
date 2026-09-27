@@ -7,8 +7,8 @@ Column {
     property bool first: false
     width: parent.width
     spacing: 6
-    topPadding: first ? 4 : 26
-    bottomPadding: 4
+    topPadding: first ? 4 : 30
+    bottomPadding: 12
     DotText { text: parent.text; px: 1.3; gap: 1; color: Theme.red }
     Text {
         visible: parent.sub !== ""
@@ -19,5 +19,4 @@ Column {
         font.pixelSize: 12
         wrapMode: Text.WordWrap
     }
-    Rectangle { width: parent.width; height: 1; color: Theme.blockBorder }
 }

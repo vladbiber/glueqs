@@ -12,13 +12,17 @@ Item {
     readonly property bool hasDefault: key !== "" && Gluewc.hasDefault(key)
     readonly property bool changed: hasDefault && !Gluewc.isDefault(key)
 
+    // inside a GwCard the row keeps a margin and the last one has no line
+    readonly property bool last: parent && parent.children && parent.children[parent.children.length - 1] === row
+    readonly property int pad: 14
+
     width: parent.width
-    implicitHeight: Math.max(48, left.implicitHeight + 18, slot.implicitHeight + 18)
+    implicitHeight: Math.max(54, left.implicitHeight + 22, slot.implicitHeight + 22)
 
     Column {
         id: left
-        anchors { left: parent.left; verticalCenter: parent.verticalCenter }
-        width: parent.width - slot.width - 24
+        anchors { left: parent.left; leftMargin: row.pad; verticalCenter: parent.verticalCenter }
+        width: parent.width - slot.width - 24 - row.pad * 2
         spacing: 3
         Text {
             width: parent.width
@@ -47,7 +51,7 @@ Item {
     }
 
     Row {
-        anchors { right: parent.right; verticalCenter: parent.verticalCenter }
+        anchors { right: parent.right; rightMargin: row.pad; verticalCenter: parent.verticalCenter }
         spacing: 10
         GwButton {
             anchors.verticalCenter: parent.verticalCenter
@@ -65,8 +69,9 @@ Item {
     }
 
     Rectangle {
-        anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
+        visible: !row.last
+        anchors { left: parent.left; right: parent.right; bottom: parent.bottom; leftMargin: row.pad; rightMargin: row.pad }
         height: 1
-        color: "#1a1a1a"
+        color: "#202020"
     }
 }
