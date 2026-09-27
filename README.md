@@ -141,7 +141,9 @@ A `settings.json` left next to the QML by an older version is copied over
 once. The file is watched, so editing it by hand applies immediately as well.
 
 The panel has a page per topic: BAR (position, the widgets and their zones),
-CLOCK, AUDIO, WEATHER, WALLPAPER, DISPLAY (the backlight), THEME and ABOUT.
+CLOCK, AUDIO, WEATHER, WALLPAPER, DISPLAY (backlight and sleep mode), THEME
+and ABOUT. Rows that belong together share one card; separate concerns get a
+gap.
 Under gluewc it grows a GLUEWC entry that opens the compositor's own settings
 (see below).
 
@@ -153,7 +155,8 @@ Under gluewc it grows a GLUEWC entry that opens the compositor's own settings
 | `accent` | Accent colour, `#rrggbb` |
 | `scale` | UI scale, clamped to 0.8–1.4 |
 | `dotFont` | Dot matrix text, or a plain font at the same size |
-| `show*` | One switch per widget (`showBrightness` included) |
+| `show*` | One switch per widget (`showLevels`, `showBrightness` included) |
+| `idleOffMin`, `idleSuspendMin`, `idleNotWhileMedia` | Sleep mode: minutes idle before the backlight goes to 0 and before suspend (0 = never), and whether to wait for media to stop |
 | `clock12h`, `showDate` | Clock format |
 | `osdEnabled`, `osdDuration` | Volume and brightness OSDs |
 | `volumeStep` | Wheel and key step, in percent |
@@ -171,16 +174,32 @@ If `clock` is in the centre zone it is pinned to the exact centre of the screen
 and its centre-zone neighbours flank it, so the time stays put no matter what
 else is on the bar.
 
-## Brightness
+## Levels, brightness and sleep mode
 
-The `brightness` tile shows the backlight percent and opens a panel with a
-slider, presets and a SCREEN OFF (0%) button; the same controls sit on the
-settings panel's DISPLAY page. It writes through `brightnessctl`, then
-`light`, then the sysfs file directly when that is writable, and it stays in
-the bar at 0% so the way back is one click. The keys gluewc binds to
-`gluewc-backlight up` bring the panel back as well. Middle click on the tile
-toggles between 0% and 50%, the wheel steps by 5%. The tile only appears when
-`/sys/class/backlight` has a device, like the battery tile.
+The `levels` tile, on the right by default, shows volume and backlight side by
+side and opens a panel with both: slider, presets, MUTE and a MIXER button on
+the left, slider, presets and SCREEN OFF (0%) on the right. The wheel over the
+tile changes the half under the pointer, shift+wheel is always the backlight,
+right click mutes, middle click toggles the screen off. `volume` and
+`brightness` remain as separate tiles for people who want them apart; an older
+config with a `volume` tile gets `levels` in its place unless a `brightness`
+tile was added on purpose.
+
+The backlight is written through `brightnessctl`, then `light`, then the sysfs
+file directly when that is writable. At 0% the tile stays in the bar so the
+way back is one click, and the keys gluewc binds to `gluewc-backlight up`
+bring the panel back as well. The tile's brightness half only appears when
+`/sys/class/backlight` has a device.
+
+SLEEP MODE lives on the settings panel's DISPLAY page (and on the gluewc
+panel's DISPLAY page): after `idleOffMin` minutes without input the shell saves
+the current level and writes 0; the first click or key restores it. After
+`idleSuspendMin` minutes it runs `loginctl suspend` (or `systemctl suspend`,
+or `zzz`); when none of those exists the row says so and stays disabled. With
+"not while media plays" on, both wait for the player to stop and act then. It
+uses the compositor's ext-idle-notify protocol through Quickshell's
+`IdleMonitor`, respects idle inhibitors, and the card shows the current state:
+armed, held by media, or off since a given time.
 
 ## gluewc settings
 
@@ -203,7 +222,7 @@ save on the spot. Pages:
   Conflicts are pointed out before saving. ADVANCED is the raw combo and
   action text. Combos gluewc already uses are taken by the compositor before
   they reach the capture box, so those are built with the buttons.
-- DISPLAY: the backlight controls, and the door to MONITORS.
+- DISPLAY: the backlight and sleep mode cards, and the door to MONITORS.
 - MONITORS: every output drawn to scale where gluewc has it; drag to move
   (snaps to neighbours), click to edit: on/off, mode from the list the output
   reports, scale presets or a typed factor, rotation, position, mirror of
@@ -256,11 +275,11 @@ thread and the transition only starts once it is there.
 
 Singletons hold the state (`Settings`, `Theme`, `Popups`, `Audio`, `Brightness`,
 `Weather`, `Notifs`, `MediaService`, `Session`, `Overview`, `Tray`, `WsState`,
-`Wallpapers`, `Gluewc`), `Wallpaper` is the background window per screen,
+`Wallpapers`, `Gluewc`, `Idle`), `Wallpaper` is the background window per screen,
 `*Widget` files are the bar tiles, `*Panel` and `*Popup` files are the windows
 behind them, `Gw*` files are the gluewc settings pages and the plain-text
-controls they share (`GwRow`, `GwField`, `GwNumber`, `GwChoice`, `GwToggle`,
-`GwColor`, `GwButton`, `GwTitle`), and `Dot*` plus `DotFont.js` are the
+controls they share (`GwCard`, `GwRow`, `GwField`, `GwNumber`, `GwChoice`,
+`GwToggle`, `GwColor`, `GwButton`, `GwTitle`), and `Dot*` plus `DotFont.js` are the
 drawing primitives everything else is built from. `shell.qml` instantiates one
 of each per screen that is not a mirror.
 
