@@ -99,7 +99,17 @@ degrades to a widget that simply does not appear.
 
 ## Install
 
-The repository *is* the Quickshell config directory:
+The gluewc installer does all of it, on every distribution it knows:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/vladbiber/gluewc/main/install.sh | sh -s -- --with-bar
+```
+
+That installs Quickshell (from the distribution, or built from source where
+there is no package), the tools the panels use, clones this repository into
+`~/.config/quickshell/glueqs` and adds the autostart line below.
+
+By hand, the repository *is* the Quickshell config directory:
 
 ```sh
 git clone https://github.com/vladbiber/glueqs.git ~/.config/quickshell/glueqs
@@ -112,13 +122,28 @@ To start it with the session, under gluewc in `~/.config/gluewc/config.conf`:
 autostart = qs -c glueqs
 ```
 
+On NixOS and finix the shell is a package: `nix run github:vladbiber/glueqs`
+tries it, and gluewc's module installs it with `programs.gluewc.bar.enable =
+true`, which puts a `glueqs` command on PATH (Quickshell from nixpkgs, the QML
+under `share/glueqs`) and seeds new accounts with `autostart = glueqs`. The
+settings file lives in `~/.config/glueqs/settings.json`, so the read-only
+store path is not a problem.
+
 Any other compositor works the same way through its own autostart; the
 workspace strip and the overview dash are the only parts that will stay away.
 
 ## Settings
 
-The settings panel writes `settings.json` next to the config, and the file is
-watched, so editing it by hand applies immediately as well.
+The settings panel writes `settings.json` to `$XDG_CONFIG_HOME/glueqs/`
+(`~/.config/glueqs/settings.json`), not next to the QML, so the shell itself
+can live somewhere read-only such as a distribution package or the Nix store.
+A `settings.json` left next to the QML by an older version is copied over
+once. The file is watched, so editing it by hand applies immediately as well.
+
+The panel has a page per topic: BAR (position, the widgets and their zones),
+CLOCK, AUDIO, WEATHER, WALLPAPER, DISPLAY (the backlight), THEME and ABOUT.
+Under gluewc it grows a GLUEWC entry that opens the compositor's own settings
+(see below).
 
 | Key | Meaning |
 | --- | --- |
@@ -128,17 +153,14 @@ watched, so editing it by hand applies immediately as well.
 | `accent` | Accent colour, `#rrggbb` |
 | `scale` | UI scale, clamped to 0.8–1.4 |
 | `dotFont` | Dot matrix text, or a plain font at the same size |
-| `show*` | One switch per widget |
+| `show*` | One switch per widget (`showBrightness` included) |
 | `clock12h`, `showDate` | Clock format |
 | `osdEnabled`, `osdDuration` | Volume and brightness OSDs |
 | `volumeStep` | Wheel and key step, in percent |
 | `weatherLocation`, `weatherInterval` | wttr.in query and refresh minutes |
 | `eqEnabled`, `eqPreset`, `eqGains` | Media panel equalizer |
 | `wallpaper`, `wallpaperPerMonitor` | The picture on every screen, and `name=path;name=path` overrides for single screens |
-| `wallpaperDir` | Where the wallpaper picker starts, empty for `~/Pictures/Wallpapers` |
-| `wallpaper`, `wallpaperPerMonitor` | The picture, and `name=path;…` overrides per screen |
-| `wallpaperFill`, `wallpaperTransition`, `wallpaperTransitionMs` | crop/fit/stretch/center/tile, fade/wipe/slide/zoom/random, duration |
-| `wallpaperRandomMin`, `wallpaperSolid` | Shuffle interval in minutes (0 = off), colour behind the picture |
+| `wallpaperDir` | The shuffle folder and where the picker starts, empty for `~/Pictures/Wallpapers` |
 | `wallpaperFill` | `crop`, `fit`, `stretch`, `center` or `tile` |
 | `wallpaperTransition`, `wallpaperTransitionMs` | `fade`, `wipe`, `slide`, `zoom` or `random`, and how long it takes |
 | `wallpaperRandomMin` | Minutes between random picks from the folder, 0 for never |
@@ -149,6 +171,52 @@ If `clock` is in the centre zone it is pinned to the exact centre of the screen
 and its centre-zone neighbours flank it, so the time stays put no matter what
 else is on the bar.
 
+## Brightness
+
+The `brightness` tile shows the backlight percent and opens a panel with a
+slider, presets and a SCREEN OFF (0%) button; the same controls sit on the
+settings panel's DISPLAY page. It writes through `brightnessctl`, then
+`light`, then the sysfs file directly when that is writable, and it stays in
+the bar at 0% so the way back is one click. The keys gluewc binds to
+`gluewc-backlight up` bring the panel back as well. Middle click on the tile
+toggles between 0% and 50%, the wheel steps by 5%. The tile only appears when
+`/sys/class/backlight` has a device, like the battery tile.
+
+## gluewc settings
+
+When the shell runs under gluewc (`XDG_CURRENT_DESKTOP=gluewc`, or the
+compositor's state files exist) the settings panel gets a GLUEWC entry, and
+`qs -c glueqs ipc call glueqs gluewc` opens the same thing from a key: a
+wider panel with the compositor's whole configuration, read from and written
+back to `~/.config/gluewc/config.conf` line by line. Comments and keys the
+shell does not know survive; the compositor watches the file and applies a
+save on the spot. Pages:
+
+- APPEARANCE, ANIMATIONS, LAYOUT, INPUT: every scalar in `config.conf`, with
+  the shipped default shown under each row and a RESET once a value differs.
+- AUTOSTART: the commands run at login, as a list.
+- KEYBINDS: SIMPLE names each bind in words ("Close window", "Volume up") with
+  the keys as chips, grouped; EDIT opens a key-capture box (press the keys, or
+  build the combo from SUPER / SHIFT / CTRL / ALT and a key name) and an
+  action picker with the window manager actions, the installed applications
+  (icon and name, becomes `spawn:` plus the Exec line) and a custom command.
+  Conflicts are pointed out before saving. ADVANCED is the raw combo and
+  action text. Combos gluewc already uses are taken by the compositor before
+  they reach the capture box, so those are built with the buttons.
+- DISPLAY: the backlight controls, and the door to MONITORS.
+- MONITORS: every output drawn to scale where gluewc has it; drag to move
+  (snaps to neighbours), click to edit: on/off, mode from the list the output
+  reports, scale presets or a typed factor, rotation, position, mirror of
+  another screen, adaptive sync. SAME ON ALL mirrors every screen onto one
+  (`output = * mirror=NAME`), EXTEND gives each its own desktop, IDENTIFY
+  flashes each screen's name on it. A change that can leave a screen dark runs
+  on a 15 s trial: KEEP it or it reverts by itself.
+
+The shell reads the outputs from `$XDG_STATE_HOME/gluewc/outputs`, which
+gluewc rewrites on every change, and gives a screen that mirrors another (or is
+switched off) no windows of its own: the compositor shows the mirror the
+source, bar and all.
+
 ## From outside
 
 ```sh
@@ -157,6 +225,8 @@ qs -c glueqs ipc call glueqs setwallpaper PATH    # put PATH on every screen
 qs -c glueqs ipc call glueqs nextwallpaper        # the next picture in the folder
 qs -c glueqs ipc call glueqs randomwallpaper      # a random one
 qs -c glueqs ipc call glueqs settings             # toggle the settings panel
+qs -c glueqs ipc call glueqs gluewc               # the compositor's settings (under gluewc)
+qs -c glueqs ipc call glueqs gluewcpage 7         # straight to a page (0 appearance ... 7 monitors)
 qs -c glueqs ipc call glueqs close                # close whatever panel is open
 ```
 
@@ -171,11 +241,14 @@ bind_insert = mod+w = spawn:qs -c glueqs ipc call glueqs wallpaper
 The shell draws the wallpaper itself, so there is no swww, waypaper or swaybg
 to run and nothing to keep in step: pick a picture in the panel (`Super+W`
 under gluewc, or the settings panel's WALLPAPER tab) and it goes into
-`settings.json` like every other setting. The picker shows the folder as a
-grid with the picture on screen marked in the accent, walks into subfolders,
-applies to every screen or only the one it is on, and sets the fill mode, the
-transition (fade, wipe, slide, zoom, or a random one each time) and an optional
-shuffle timer. Arrows move, Enter applies, `R` shuffles, `N` is next,
+`settings.json` like every other setting. The picker is a browser: breadcrumbs
+from `/` to the folder on show, UP and PICTURES shortcuts, the subfolders as
+chips, a path field that takes a folder or a picture, and the pictures as a
+grid of thumbnails with the one on screen marked in the accent. Browsing does
+not move the shuffle folder until USE THIS FOLDER is pressed. It applies to
+every screen or only the one it is on, and sets the fill mode, the transition
+(fade, wipe, slide, zoom, or a random one each time) and an optional shuffle
+timer. Arrows move, Enter applies, `Ctrl+R` shuffles, `Ctrl+N` is next,
 Backspace goes up a folder, Escape closes. The picture is decoded off the main
 thread and the transition only starts once it is there.
 
@@ -183,10 +256,13 @@ thread and the transition only starts once it is there.
 
 Singletons hold the state (`Settings`, `Theme`, `Popups`, `Audio`, `Brightness`,
 `Weather`, `Notifs`, `MediaService`, `Session`, `Overview`, `Tray`, `WsState`,
-`Wallpapers`), `Wallpaper` is the background window per screen, `*Widget`
-files are the bar tiles, `*Panel` and `*Popup` files are the windows behind
-them, and `Dot*` plus `DotFont.js` are the drawing primitives everything else
-is built from. `shell.qml` instantiates one of each per screen.
+`Wallpapers`, `Gluewc`), `Wallpaper` is the background window per screen,
+`*Widget` files are the bar tiles, `*Panel` and `*Popup` files are the windows
+behind them, `Gw*` files are the gluewc settings pages and the plain-text
+controls they share (`GwRow`, `GwField`, `GwNumber`, `GwChoice`, `GwToggle`,
+`GwColor`, `GwButton`, `GwTitle`), and `Dot*` plus `DotFont.js` are the
+drawing primitives everything else is built from. `shell.qml` instantiates one
+of each per screen that is not a mirror.
 
 ## gluewc
 
