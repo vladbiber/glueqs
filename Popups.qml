@@ -10,6 +10,7 @@ Singleton {
     id: root
     property string open: ""
     property int settingsTab: 0
+    property int gluewcPage: 0
 
     function toggle(name) {
         open = (open === name) ? "" : name;
@@ -40,6 +41,17 @@ Singleton {
 
         function settings(): void {
             root.toggle("settings");
+        }
+
+        // qs -c glueqs ipc call glueqs gluewc          the compositor settings
+        // qs -c glueqs ipc call glueqs gluewcpage 6    straight to a page
+        function gluewc(): void {
+            root.toggle("gluewc");
+        }
+
+        function gluewcpage(page: int): void {
+            root.gluewcPage = page;
+            root.open = "gluewc";
         }
 
         function close(): void {
