@@ -36,6 +36,7 @@ ShellRoot {
             WeatherPanel { screen: modelData }
             BatteryPanel { screen: modelData }
             BrightnessPanel { screen: modelData }
+            LevelsPanel { screen: modelData }
             NotifPanel { screen: modelData }
             NotifToast { screen: modelData }
             OverviewDock { screen: modelData }

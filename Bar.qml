@@ -43,6 +43,7 @@ PanelWindow {
     Component { id: cVolume;     VolumeWidget {} }
     Component { id: cBattery;    BatteryWidget {} }
     Component { id: cBrightness; BrightnessWidget {} }
+    Component { id: cLevels;     LevelsWidget {} }
     Component { id: cPower;      PowerWidget {} }
     Component { id: cTray;       TrayWidget {} }
     Component { id: cNotifs;     NotifWidget {} }
@@ -60,6 +61,7 @@ PanelWindow {
         volume: Settings.s.showVolume,
         battery: Settings.s.showBattery && (UPower.displayDevice?.isLaptopBattery ?? false),
         brightness: Settings.s.showBrightness && Brightness.available,
+        levels: Settings.s.showLevels,
         power: Settings.s.showPower,
         tray: Settings.s.showTray && SystemTray.items.values.length > 0,
         notifs: Settings.s.showNotifs
@@ -69,7 +71,7 @@ PanelWindow {
         settings: cSettings, launcher: cLauncher, workspaces: cWorkspaces,
         weather: cWeather, clock: cClock, media: cMedia, netspeed: cNetSpeed,
         network: cNetwork, volume: cVolume, battery: cBattery, power: cPower,
-        tray: cTray, notifs: cNotifs, brightness: cBrightness
+        tray: cTray, notifs: cNotifs, brightness: cBrightness, levels: cLevels
     })
 
     component ZoneLoader: Loader {

@@ -59,7 +59,7 @@ PanelWindow {
     }
 
     Timer {
-        running: (Quickshell.env("GLUEQS_SHOT") ?? "") !== "" && Brightness.available
+        running: (Quickshell.env("GLUEQS_SHOT_BRIGHTNESS") ?? "") !== "" && Brightness.available
         interval: 5200
         onTriggered: { Popups.open = "brightness"; shot.start(); }
     }
