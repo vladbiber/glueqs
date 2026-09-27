@@ -3,45 +3,52 @@ import Quickshell.Io
 import Quickshell.Wayland
 import QtQuick
 
-// Settings: centered modal with a sidebar of tabs
-// (BAR / CLOCK / AUDIO / WEATHER / WALLPAPER / THEME / ABOUT).
+// Settings: a centred panel with the pages on the left (BAR / CLOCK / AUDIO /
+// WEATHER / WALLPAPER / DISPLAY / THEME / ABOUT, plus GLUEWC under that
+// compositor) and the page on the right. Plain text for what has to be read,
+// dots for the headings.
 PanelWindow {
     id: root
     anchors.top: true
     margins.top: Theme.popupTop
-    implicitWidth: 600
-    implicitHeight: 580
+    implicitWidth: 720
+    implicitHeight: Math.max(480, Math.min(640, (root.screen?.height ?? 900) - Theme.popupTop - 40))
     color: "transparent"
     exclusionMode: ExclusionMode.Ignore
     WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.keyboardFocus:
-        visible && locEditing ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+    WlrLayershell.keyboardFocus: visible ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
     visible: Popups.open === "settings"
 
     readonly property int tab: Popups.settingsTab
-    property bool locEditing: false
-    readonly property var tabs: ["BAR", "CLOCK", "AUDIO", "WEATHER", "WALLPAPER", "THEME", "ABOUT"]
+    readonly property var baseTabs: [
+        { label: "BAR", sub: "position, widgets" },
+        { label: "CLOCK", sub: "format, date" },
+        { label: "AUDIO", sub: "osd, steps" },
+        { label: "WEATHER", sub: "location, refresh" },
+        { label: "WALLPAPER", sub: "picker, fill, colour" },
+        { label: "DISPLAY", sub: "brightness" },
+        { label: "THEME", sub: "accent, scale, font" },
+        { label: "ABOUT", sub: "glueqs" }
+    ]
+    // the compositor's settings have their own, wider panel; under gluewc
+    // they get an entry at the end of this list that opens it
+    readonly property var tabs: Gluewc.available ? baseTabs.concat([{ label: "GLUEWC", sub: "compositor, monitors", external: true }]) : baseTabs
 
-    onVisibleChanged: if (!visible) locEditing = false
-
-    // ---- wallpapers ----
     readonly property string homeDir: Quickshell.env("HOME") ?? ""
-    function shortDir(p) {
-        return (p.startsWith(homeDir) ? "~" + p.slice(homeDir.length) : p).toUpperCase();
-    }
+    function shortDir(p) { return p.startsWith(homeDir) ? "~" + p.slice(homeDir.length) : p }
 
     // ---- widget order/zone management ----
     readonly property var widgetNames: ({
-        settings: "SETTINGS", launcher: "LAUNCHER", workspaces: "WORKSPACES",
-        weather: "WEATHER", clock: "CLOCK", media: "MEDIA", netspeed: "NET SPEED",
-        network: "WIFI BT", volume: "VOLUME", battery: "BATTERY", power: "POWER",
-        tray: "TRAY", notifs: "NOTIFICATIONS"
+        settings: "Settings", launcher: "Launcher", workspaces: "Workspaces",
+        weather: "Weather", clock: "Clock", media: "Media", netspeed: "Net speed",
+        network: "Wi-Fi and Bluetooth", volume: "Volume", battery: "Battery", power: "Power",
+        tray: "Tray", notifs: "Notifications", brightness: "Brightness"
     })
     readonly property var widgetKeys: ({
         launcher: "showLauncher", workspaces: "showWorkspaces", weather: "showWeather",
         clock: "showClock", media: "showMedia", netspeed: "showNetSpeed",
         network: "showNetwork", volume: "showVolume", battery: "showBattery",
-        power: "showPower", tray: "showTray", notifs: "showNotifs"
+        power: "showPower", tray: "showTray", notifs: "showNotifs", brightness: "showBrightness"
     })
     readonly property var zoneKeys: ["barLeft", "barCenter", "barRight"]
     readonly property var orderRows: {
@@ -70,50 +77,33 @@ PanelWindow {
         saveZone(next, arr);
     }
 
-    component ToggleRow: Item {
-        property string label: ""
-        property string key: ""
-        width: parent.width
-        height: 26
-        DotText {
-            anchors { left: parent.left; verticalCenter: parent.verticalCenter }
-            text: parent.label
-            maxWidth: parent.width - 52
-            px: 1.1; gap: 1
-            color: Settings.s[parent.key] ? Theme.fg : Theme.mid
-        }
-        DotToggle {
-            anchors { right: parent.right; verticalCenter: parent.verticalCenter }
-            on: Settings.s[parent.key] ?? false
-            onToggled: Settings.s[parent.key] = !Settings.s[parent.key]
+    // a row with a shell setting toggle
+    component SToggle: GwRow {
+        property string skey: ""
+        GwToggle { bound: true; value: Settings.s[parent.skey] ?? false; onToggled: Settings.s[parent.skey] = !Settings.s[parent.skey] }
+    }
+    component Swatches: Row {
+        property string skey: ""
+        property var colors: []
+        spacing: 10
+        Repeater {
+            model: parent.colors
+            delegate: Rectangle {
+                required property string modelData
+                width: 28; height: 28; radius: 14
+                color: "transparent"
+                border.color: Settings.s[parent.skey] === modelData ? Theme.fg : swm.containsMouse ? "#4a4a4a" : Theme.blockBorder
+                border.width: Settings.s[parent.skey] === modelData ? 2 : 1
+                Rectangle { anchors.centerIn: parent; width: 16; height: 16; radius: 8; color: parent.modelData }
+                MouseArea { id: swm; anchors.fill: parent; hoverEnabled: true; onClicked: Settings.s[parent.parent.skey] = parent.modelData }
+            }
         }
     }
-
-    component SliderRow: Item {
-        id: srow
-        property string label: ""
-        property string valueText: ""
-        property real value: 0
-        signal moved(real v)
+    component Note: Text {
         width: parent.width
-        height: 30
-        DotText {
-            anchors { left: parent.left; verticalCenter: parent.verticalCenter }
-            text: srow.label
-            maxWidth: srow.width - 64 - 16 * 6 - 12
-            px: 1.1; gap: 1
-        }
-        DotText {
-            anchors { right: parent.right; verticalCenter: parent.verticalCenter }
-            text: srow.valueText
-            px: 1; gap: 1; color: Theme.mid
-        }
-        DotSlider {
-            anchors { right: parent.right; rightMargin: 64; verticalCenter: parent.verticalCenter }
-            dots: 16
-            value: srow.value
-            onMoved: v => srow.moved(v)
-        }
+        wrapMode: Text.WordWrap
+        color: "#9a9a9a"; font.family: Theme.uiFont; font.pixelSize: 11
+        topPadding: 10
     }
 
     Rectangle {
@@ -124,59 +114,76 @@ PanelWindow {
         border.color: Theme.blockBorder
         border.width: 1
 
-        // the close button lives in the header strip above the content, so
-        // no tab's first row has to dodge it
+        MouseArea { anchors.fill: parent; onClicked: content.forceActiveFocus() }
+
         Item {
             id: header
-            anchors { top: parent.top; left: parent.left; right: parent.right }
+            anchors { top: parent.top; left: parent.left; right: parent.right; margins: 18 }
             height: 34
+            Row {
+                anchors { left: parent.left; verticalCenter: parent.verticalCenter }
+                spacing: 14
+                DotText { anchors.verticalCenter: parent.verticalCenter; text: "SETTINGS"; px: 2; gap: 1.2 }
+                Text { anchors.verticalCenter: parent.verticalCenter; text: "glueqs shell"; color: "#9a9a9a"; font.family: Theme.uiFont; font.pixelSize: 12 }
+            }
             DotIcon {
-                anchors { top: parent.top; right: parent.right; margins: 12 }
-                name: "x"
-                px: 1.6; gap: 1
+                anchors { right: parent.right; verticalCenter: parent.verticalCenter }
+                name: "x"; px: 1.6; gap: 1
                 color: sxArea.containsMouse ? Theme.red : Theme.dim
                 MouseArea {
                     id: sxArea
-                    anchors.fill: parent; anchors.margins: -6
+                    anchors.fill: parent; anchors.margins: -8
                     hoverEnabled: true
                     onClicked: Popups.open = ""
                 }
             }
         }
+        Rectangle {
+            anchors { top: header.bottom; left: parent.left; right: parent.right; topMargin: 10 }
+            height: 1; color: Theme.blockBorder
+        }
 
         Row {
-            anchors { fill: parent; margins: 18; topMargin: 30 }
-            spacing: 18
+            anchors { top: header.bottom; left: parent.left; right: parent.right; bottom: parent.bottom; margins: 18; topMargin: 24 }
+            spacing: 20
 
-            // sidebar
             Column {
-                width: 118
+                id: side
+                width: 150
                 spacing: 4
-                DotText { text: "SETTINGS"; px: 1.4; gap: 1 }
-                Item { width: 1; height: 8 }
                 Repeater {
                     model: root.tabs
                     delegate: Rectangle {
                         id: tabRow
-                        required property string modelData
+                        required property var modelData
                         required property int index
-                        readonly property bool active: root.tab === index
-                        width: parent.width; height: 30
-                        radius: 6
-                        color: tma.containsMouse ? "#1c1c1c" : active ? "#1a1a1a" : "transparent"
-                        border.color: active ? Theme.red : "transparent"
+                        readonly property bool external: modelData.external === true
+                        readonly property bool active: !external && root.tab === index
+                        width: parent.width; height: 44
+                        radius: 8
+                        color: tma.containsMouse ? "#1c1c1c" : active ? "#181818" : "transparent"
+                        border.color: active ? Theme.red : external ? Theme.blockBorder : "transparent"
                         border.width: 1
+                        Column {
+                            anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
+                            spacing: 4
+                            DotText { text: tabRow.modelData.label; px: 1.05; gap: 1; color: tabRow.active ? Theme.fg : Theme.mid }
+                            Text { text: tabRow.modelData.sub; color: "#9a9a9a"; font.family: Theme.uiFont; font.pixelSize: 10 }
+                        }
                         DotText {
-                            anchors { left: parent.left; leftMargin: 10; verticalCenter: parent.verticalCenter }
-                            text: tabRow.modelData
-                            px: 1.1; gap: 1
-                            color: tabRow.active ? Theme.fg : Theme.mid
+                            visible: tabRow.external
+                            anchors { right: parent.right; rightMargin: 10; verticalCenter: parent.verticalCenter }
+                            text: ">"; px: 1.1; gap: 1; color: Theme.red
                         }
                         MouseArea {
                             id: tma
                             anchors.fill: parent
                             hoverEnabled: true
-                            onClicked: Popups.settingsTab = tabRow.index
+                            onClicked: {
+                                content.forceActiveFocus();
+                                if (tabRow.external) Popups.open = "gluewc";
+                                else Popups.settingsTab = tabRow.index;
+                            }
                         }
                     }
                 }
@@ -184,409 +191,231 @@ PanelWindow {
 
             Rectangle { width: 1; height: parent.height; color: Theme.blockBorder }
 
-            // content: every tab is a Column inside one Flickable, so a tab
-            // taller than the panel scrolls with the wheel instead of being
-            // cut off at the bottom. The close button has the top right.
             Flickable {
                 id: tabArea
-                width: parent.width - 118 - 1 - 36
+                width: parent.width - side.width - 1 - 40
                 height: parent.height
                 clip: true
                 contentWidth: width
                 contentHeight: tabStack.implicitHeight + 8
                 boundsBehavior: Flickable.StopAtBounds
-                // the tab changed: back to the top
                 Connections {
                     target: root
                     function onTabChanged() { tabArea.contentY = 0 }
                 }
 
-            Item {
-                id: tabStack
-                width: tabArea.width
-                implicitHeight: {
-                    let h = 0;
-                    for (const c of children) if (c.visible) h = Math.max(h, c.implicitHeight);
-                    return h;
-                }
-
-                // BAR
-                Column {
-                    visible: root.tab === 0
-                    width: parent.width
-                    spacing: 6
-
-                    // room for the close button on the first row
-                    DotText {
-                        text: "POSITION"
-                        px: 1.1; gap: 1
-                        width: parent.width - 28
+                Item {
+                    id: tabStack
+                    width: tabArea.width - 6
+                    implicitHeight: {
+                        let h = 0;
+                        for (const c of children) if (c.visible) h = Math.max(h, c.implicitHeight);
+                        return h;
                     }
-                    Flow {
+
+                    // BAR
+                    Column {
+                        visible: root.tab === 0
                         width: parent.width
-                        spacing: 4
-                        Repeater {
-                                model: ["top", "bottom", "left", "right"]
-                                delegate: Rectangle {
-                                    required property string modelData
-                                    readonly property bool active: Settings.s.barPosition === modelData
-                                    width: 52; height: 22; radius: 6
-                                    color: pcma.containsMouse ? "#1c1c1c" : "transparent"
-                                    border.color: active ? Theme.red : Theme.blockBorder
-                                    border.width: 1
-                                    DotText {
-                                        anchors.centerIn: parent
-                                        text: parent.modelData.toUpperCase()
-                                        px: 0.8; gap: 0.8
-                                        color: parent.active ? Theme.fg : Theme.mid
-                                    }
-                                    MouseArea {
-                                        id: pcma
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        onClicked: Settings.s.barPosition = parent.modelData
-                                    }
-                                }
-                        }
-                    }
-                    Item { width: 1; height: 2 }
-                    ToggleRow { label: "SOLID BLACK BG"; key: "barSolid" }
-                    Item { width: 1; height: 4 }
-                    DotText {
-                        text: "WIDGETS   ARROWS = ORDER   L/C/R = ZONE"
-                        maxWidth: parent.width
-                        px: 0.8; gap: 0.8; color: Theme.dim
-                    }
-
-                    Repeater {
-                        model: root.orderRows
-                        delegate: Item {
-                            id: orow
-                            required property var modelData
-                            width: parent.width; height: 25
-
-                            Row {
-                                anchors { left: parent.left; verticalCenter: parent.verticalCenter }
-                                spacing: 8
-                                DotIcon {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    name: "up"; px: 1; gap: 0.9
-                                    color: uma.containsMouse ? Theme.red : Theme.dim
-                                    MouseArea {
-                                        id: uma
-                                        anchors.fill: parent; anchors.margins: -4
-                                        hoverEnabled: true
-                                        onClicked: root.moveWidget(orow.modelData.id, orow.modelData.zone, -1)
-                                    }
-                                }
-                                DotIcon {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    name: "down"; px: 1; gap: 0.9
-                                    color: dnma.containsMouse ? Theme.red : Theme.dim
-                                    MouseArea {
-                                        id: dnma
-                                        anchors.fill: parent; anchors.margins: -4
-                                        hoverEnabled: true
-                                        onClicked: root.moveWidget(orow.modelData.id, orow.modelData.zone, 1)
-                                    }
-                                }
-                                DotText {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    text: root.widgetNames[orow.modelData.id] ?? orow.modelData.id.toUpperCase()
-                                    px: 1; gap: 1
-                                    color: {
-                                        const k = root.widgetKeys[orow.modelData.id];
-                                        return !k || Settings.s[k] ? Theme.fg : Theme.dim;
-                                    }
-                                }
+                        spacing: 0
+                        GwTitle { first: true; text: "BAR"; sub: "Where the bar sits and what is on it. Arrows change the order, L / C / R moves a widget between the three zones." }
+                        GwRow { label: "Position"; hint: "Which screen edge"
+                            GwChoice {
+                                bound: true; value: Settings.s.barPosition
+                                options: [{ v: "top", label: "TOP" }, { v: "bottom", label: "BOTTOM" }, { v: "left", label: "LEFT" }, { v: "right", label: "RIGHT" }]
+                                onPicked: v => Settings.s.barPosition = v
                             }
+                        }
+                        SToggle { label: "Solid black background"; hint: "Instead of see-through between the tiles"; skey: "barSolid" }
 
-                            Row {
-                                anchors { right: parent.right; verticalCenter: parent.verticalCenter }
-                                spacing: 10
-                                Rectangle {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    width: 24; height: 20; radius: 5
-                                    color: zma.containsMouse ? "#1c1c1c" : "transparent"
-                                    border.color: Theme.blockBorder
-                                    DotText {
-                                        anchors.centerIn: parent
-                                        text: ["L", "C", "R"][orow.modelData.zone]
-                                        px: 0.9; gap: 0.9
-                                        color: Theme.mid
+                        GwTitle { text: "WIDGETS" }
+                        Repeater {
+                            model: root.orderRows
+                            delegate: Item {
+                                id: orow
+                                required property var modelData
+                                readonly property string vkey: root.widgetKeys[modelData.id] ?? ""
+                                width: parent.width; height: 40
+                                Row {
+                                    anchors { left: parent.left; verticalCenter: parent.verticalCenter }
+                                    spacing: 6
+                                    GwButton { label: "↑"; small: true; implicitWidth: 26; onClicked: root.moveWidget(orow.modelData.id, orow.modelData.zone, -1) }
+                                    GwButton { label: "↓"; small: true; implicitWidth: 26; onClicked: root.moveWidget(orow.modelData.id, orow.modelData.zone, 1) }
+                                    Item { width: 6; height: 1 }
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: root.widgetNames[orow.modelData.id] ?? orow.modelData.id
+                                        color: orow.vkey === "" || Settings.s[orow.vkey] ? Theme.fg : "#8a8a8a"
+                                        font.family: Theme.uiFont; font.pixelSize: 13
                                     }
-                                    MouseArea {
-                                        id: zma
-                                        anchors.fill: parent
-                                        hoverEnabled: true
+                                }
+                                Row {
+                                    anchors { right: parent.right; verticalCenter: parent.verticalCenter }
+                                    spacing: 10
+                                    GwButton {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        label: ["LEFT", "CENTER", "RIGHT"][orow.modelData.zone]; small: true
                                         onClicked: root.cycleZone(orow.modelData.id, orow.modelData.zone)
                                     }
-                                }
-                                DotToggle {
-                                    visible: root.widgetKeys[orow.modelData.id] !== undefined
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    on: Settings.s[root.widgetKeys[orow.modelData.id]] ?? true
-                                    onToggled: {
-                                        const k = root.widgetKeys[orow.modelData.id];
-                                        Settings.s[k] = !Settings.s[k];
+                                    DotToggle {
+                                        visible: orow.vkey !== ""
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        on: Settings.s[orow.vkey] ?? true
+                                        onToggled: Settings.s[orow.vkey] = !Settings.s[orow.vkey]
                                     }
+                                    Item { visible: orow.vkey === ""; width: 30; height: 1 }
                                 }
+                                Rectangle { anchors { left: parent.left; right: parent.right; bottom: parent.bottom } height: 1; color: "#1a1a1a" }
                             }
                         }
                     }
-                }
 
-                // CLOCK
-                Column {
-                    visible: root.tab === 1
-                    width: parent.width
-                    spacing: 6
-                    ToggleRow { label: "12H FORMAT"; key: "clock12h" }
-                    ToggleRow { label: "SHOW DATE"; key: "showDate" }
-                    Item { width: 1; height: 6 }
-                    DotText {
-                        text: "CLICK THE CLOCK FOR CALENDAR"
-                        px: 0.9; gap: 0.9; color: Theme.dim
+                    // CLOCK
+                    Column {
+                        visible: root.tab === 1
+                        width: parent.width
+                        spacing: 0
+                        GwTitle { first: true; text: "CLOCK"; sub: "Click the clock in the bar for the calendar." }
+                        SToggle { label: "12-hour format"; skey: "clock12h" }
+                        SToggle { label: "Show the date"; skey: "showDate" }
                     }
-                }
 
-                // AUDIO
-                Column {
-                    visible: root.tab === 2
-                    width: parent.width
-                    spacing: 6
-                    ToggleRow { label: "VOLUME OSD"; key: "osdEnabled" }
-                    SliderRow {
-                        label: "OSD TIME"
-                        valueText: Settings.s.osdDuration + "MS"
-                        value: (Settings.s.osdDuration - 800) / 2400
-                        onMoved: v => Settings.s.osdDuration = 800 + Math.round(v * 24) * 100
+                    // AUDIO
+                    Column {
+                        visible: root.tab === 2
+                        width: parent.width
+                        spacing: 0
+                        GwTitle { first: true; text: "AUDIO"; sub: "The volume tile, its OSD and the media visualiser. Equaliser presets live in the media panel." }
+                        SToggle { label: "Volume OSD"; hint: "A pop-up when the volume changes"; skey: "osdEnabled" }
+                        GwRow { label: "OSD time"; hint: "How long the pop-up stays"
+                            GwNumber { bound: true; value: Settings.s.osdDuration; min: 800; max: 3200; step: 100; unit: "ms"; onChanged: v => Settings.s.osdDuration = Math.round(v) }
+                        }
+                        GwRow { label: "Scroll step"; hint: "Per wheel notch on the volume tile"
+                            GwNumber { bound: true; value: Settings.s.volumeStep; min: 1; max: 10; unit: "%"; onChanged: v => Settings.s.volumeStep = Math.round(v) }
+                        }
+                        SToggle { label: "Visualiser"; hint: "The live spectrum in the media panel"; skey: "eqEnabled" }
                     }
-                    SliderRow {
-                        label: "SCROLL STEP"
-                        valueText: Settings.s.volumeStep + "%"
-                        value: (Settings.s.volumeStep - 1) / 9
-                        onMoved: v => Settings.s.volumeStep = 1 + Math.round(v * 9)
-                    }
-                    ToggleRow { label: "VISUALIZER"; key: "eqEnabled" }
-                    Item { width: 1; height: 6 }
-                    DotText {
-                        text: "EQ PRESETS LIVE IN THE MEDIA PANEL"
-                        px: 0.9; gap: 0.9; color: Theme.dim
-                    }
-                }
 
-                // WEATHER
-                Column {
-                    visible: root.tab === 3
-                    width: parent.width
-                    spacing: 6
-                    ToggleRow { label: "SHOW WEATHER"; key: "showWeather" }
-                    Item { width: 1; height: 4 }
-                    DotText { text: "LOCATION"; px: 1; gap: 1; color: Theme.dim }
-                    Rectangle {
-                        width: parent.width; height: 32
-                        radius: 8
-                        color: "#161616"
-                        border.color: root.locEditing ? Theme.red : Theme.blockBorder
-                        Row {
-                            anchors { left: parent.left; leftMargin: 10; verticalCenter: parent.verticalCenter }
-                            spacing: 6
-                            DotText {
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: root.locEditing
-                                      ? locInput.text.toUpperCase()
-                                      : (Settings.s.weatherLocation === ""
-                                         ? "AUTO (IP)" : Settings.s.weatherLocation.toUpperCase())
-                                px: 1.2; gap: 1
-                                color: !root.locEditing && Settings.s.weatherLocation === ""
-                                       ? Theme.dim : Theme.fg
-                            }
-                            Rectangle {
-                                visible: root.locEditing
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: 7; height: 14
-                                color: Theme.fg
-                                SequentialAnimation on opacity {
-                                    running: root.locEditing; loops: Animation.Infinite
-                                    NumberAnimation { to: 0; duration: 500 }
-                                    NumberAnimation { to: 1; duration: 500 }
-                                }
+                    // WEATHER
+                    Column {
+                        visible: root.tab === 3
+                        width: parent.width
+                        spacing: 0
+                        GwTitle { first: true; text: "WEATHER"; sub: "Current conditions from wttr.in through curl." }
+                        SToggle { label: "Show weather"; skey: "showWeather" }
+                        GwRow { label: "Location"; hint: "A city name. Empty finds you by IP address."
+                            GwField {
+                                width: 200
+                                text: Settings.s.weatherLocation
+                                placeholder: "auto (IP)"
+                                onCommitted: v => Settings.s.weatherLocation = v.trim()
                             }
                         }
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: {
-                                root.locEditing = true;
-                                locInput.text = Settings.s.weatherLocation;
-                                locInput.forceActiveFocus();
+                        GwRow { label: "Refresh"
+                            GwNumber { bound: true; value: Settings.s.weatherInterval; min: 5; max: 60; step: 5; unit: "min"; onChanged: v => Settings.s.weatherInterval = Math.round(v) }
+                        }
+                    }
+
+                    // WALLPAPER
+                    Column {
+                        visible: root.tab === 4
+                        width: parent.width
+                        spacing: 0
+                        GwTitle { first: true; text: "WALLPAPER"; sub: "The shell paints it itself, no swww or waypaper needed. The picker browses folders, shows thumbnails and takes a typed path." }
+                        GwRow { label: "Picture"; hint: Settings.s.wallpaper === "" ? "none yet" : root.shortDir(Settings.s.wallpaper)
+                            GwButton { label: "OPEN THE PICKER   (MOD+W)"; active: true; onClicked: Popups.open = "wallpaper" }
+                        }
+                        GwRow { label: "Shuffle folder"; hint: root.shortDir(Wallpapers.dir) + "   ·   " + Wallpapers.files.length + " pictures"
+                            GwField {
+                                width: 220
+                                text: Settings.s.wallpaperDir
+                                placeholder: "~/Pictures/Wallpapers"
+                                onCommitted: v => { let p = v.trim(); if (p.startsWith("~")) p = root.homeDir + p.slice(1); Settings.s.wallpaperDir = p; }
                             }
                         }
-                    }
-                    DotText {
-                        text: "TYPE CITY. ENTER = SAVE. EMPTY = AUTO"
-                        px: 0.8; gap: 0.8; color: Theme.dim
-                    }
-                    SliderRow {
-                        label: "REFRESH"
-                        valueText: Settings.s.weatherInterval + "MIN"
-                        value: (Settings.s.weatherInterval - 5) / 55
-                        onMoved: v => Settings.s.weatherInterval = 5 + Math.round(v * 11) * 5
-                    }
-                }
-
-                // WALLPAPER
-                Column {
-                    visible: root.tab === 4
-                    width: parent.width
-                    spacing: 6
-
-                    // the picker is its own panel: big thumbnails, keyboard
-                    Rectangle {
-                        width: parent.width; height: 34
-                        radius: 8
-                        color: pma.containsMouse ? "#1c1c1c" : "#161616"
-                        border.color: pma.containsMouse ? Theme.red : Theme.blockBorder
-                        border.width: 1
-                        DotText {
-                            anchors.centerIn: parent
-                            text: "OPEN THE PICKER   (MOD+W)"
-                            maxWidth: parent.width - 16
-                            px: 1; gap: 1
+                        GwRow { label: "Fill"
+                            GwChoice {
+                                bound: true; value: Settings.s.wallpaperFill
+                                options: [{ v: "crop", label: "CROP" }, { v: "fit", label: "FIT" }, { v: "stretch", label: "STRETCH" }, { v: "center", label: "CENTER" }, { v: "tile", label: "TILE" }]
+                                onPicked: v => Settings.s.wallpaperFill = v
+                            }
                         }
-                        MouseArea {
-                            id: pma
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            onClicked: Popups.open = "wallpaper"
+                        GwRow { label: "Transition"
+                            GwChoice {
+                                bound: true; value: Settings.s.wallpaperTransition
+                                options: [{ v: "fade", label: "FADE" }, { v: "wipe", label: "WIPE" }, { v: "slide", label: "SLIDE" }, { v: "zoom", label: "ZOOM" }, { v: "random", label: "RANDOM" }]
+                                onPicked: v => Settings.s.wallpaperTransition = v
+                            }
+                        }
+                        GwRow { label: "Transition time"
+                            GwNumber { bound: true; value: Settings.s.wallpaperTransitionMs; min: 0; max: 3000; step: 100; unit: "ms"; onChanged: v => Settings.s.wallpaperTransitionMs = Math.round(v) }
+                        }
+                        GwRow { label: "Shuffle every"; hint: "0 turns the random change off"
+                            GwNumber { bound: true; value: Settings.s.wallpaperRandomMin; min: 0; max: 240; step: 5; unit: "min"; onChanged: v => Settings.s.wallpaperRandomMin = Math.round(v) }
+                        }
+                        GwRow { label: "Behind the picture"; hint: "Also the colour on its own without one"
+                            Swatches { skey: "wallpaperSolid"; colors: ["#000000", "#241f31", "#1a1a2e", "#101820", "#f2f2f2"] }
                         }
                     }
-                    DotText {
-                        text: "FOLDER  " + root.shortDir(Wallpapers.dir)
-                        maxWidth: parent.width
-                        px: 0.85; gap: 0.85; color: Theme.mid
+
+                    // DISPLAY
+                    Column {
+                        visible: root.tab === 5
+                        width: parent.width
+                        spacing: 0
+                        GwTitle { first: true; text: "BRIGHTNESS"; sub: "The panel backlight. The bar has the same slider under the brightness tile." }
+                        Item { width: 1; height: 14 }
+                        Loader {
+                            width: parent.width
+                            active: Brightness.available
+                            sourceComponent: BrightnessControls { width: parent.width }
+                        }
+                        Note {
+                            visible: !Brightness.available
+                            text: "No backlight under /sys/class/backlight on this machine, so there is nothing to dim from here."
+                        }
+                        GwTitle { visible: Gluewc.available; text: "MONITORS"; sub: "Layout, resolution, scale and mirroring are compositor settings." }
+                        Item { visible: Gluewc.available; width: 1; height: 12 }
+                        GwButton { visible: Gluewc.available; label: "OPEN GLUEWC MONITORS  >"; active: true; onClicked: { Popups.gluewcPage = 7; Popups.open = "gluewc"; } }
                     }
-                    DotText {
-                        text: "NOW  " + (Settings.s.wallpaper === "" ? "NONE"
-                                : Settings.s.wallpaper.slice(Settings.s.wallpaper.lastIndexOf("/") + 1).toUpperCase())
-                        maxWidth: parent.width
-                        px: 0.85; gap: 0.85; color: Theme.mid
+
+                    // THEME
+                    Column {
+                        visible: root.tab === 6
+                        width: parent.width
+                        spacing: 0
+                        GwTitle { first: true; text: "THEME"; sub: "Black, white and one accent." }
+                        GwRow { label: "Accent"
+                            Swatches { skey: "accent"; colors: ["#d71921", "#f2f2f2", "#2b7de3", "#2ec46b", "#f5c518"] }
+                        }
+                        GwRow { label: "Custom accent"; hint: "Any hex colour"
+                            GwField {
+                                width: 110
+                                text: Settings.s.accent
+                                onCommitted: v => { const c = v.trim(); if (/^#[0-9a-fA-F]{6}$/.test(c)) Settings.s.accent = c; }
+                            }
+                        }
+                        GwRow { label: "UI scale"; hint: "Bar, tiles and dot fonts"
+                            GwNumber { bound: true; value: Settings.s.scale; min: 0.85; max: 1.3; step: 0.05; decimals: 2; unit: "×"; onChanged: v => Settings.s.scale = Math.round(v * 20) / 20 }
+                        }
+                        SToggle { label: "Dot-matrix font"; hint: "Off shows plain text in the bar instead of dots"; skey: "dotFont" }
                     }
-                    Item { width: 1; height: 4 }
-                    SliderRow {
-                        label: "FX TIME"
-                        valueText: Settings.s.wallpaperTransitionMs + "MS"
-                        value: Settings.s.wallpaperTransitionMs / 3000
-                        onMoved: v => Settings.s.wallpaperTransitionMs = Math.round(v * 30) * 100
-                    }
-                    Item { width: 1; height: 4 }
-                    DotText { text: "BEHIND THE PICTURE"; px: 1; gap: 1; color: Theme.dim }
-                    Row {
+
+                    // ABOUT
+                    Column {
+                        visible: root.tab === 7
+                        width: parent.width
                         spacing: 10
-                        Repeater {
-                            model: ["#000000", "#241f31", "#1a1a2e", "#101820", "#f2f2f2"]
-                            delegate: Rectangle {
-                                required property string modelData
-                                width: 24; height: 24; radius: 12
-                                color: "transparent"
-                                border.color: Settings.s.wallpaperSolid === modelData ? Theme.fg : Theme.blockBorder
-                                border.width: 1
-                                Rectangle {
-                                    anchors.centerIn: parent
-                                    width: 13; height: 13; radius: 6.5
-                                    color: parent.modelData
-                                }
-                                MouseArea {
-                                    anchors.fill: parent
-                                    onClicked: Settings.s.wallpaperSolid = parent.modelData
-                                }
-                            }
-                        }
-                    }
-                    Item { width: 1; height: 6 }
-                    DotText {
-                        text: "THE SHELL PAINTS IT. NO SWWW OR WAYPAPER NEEDED."
-                        maxWidth: parent.width
-                        px: 0.7; gap: 0.7; color: Theme.hint
-                    }
-                }
-
-                // THEME
-                Column {
-                    visible: root.tab === 5
-                    width: parent.width
-                    spacing: 6
-                    DotText { text: "ACCENT"; px: 1; gap: 1; color: Theme.dim }
-                    Row {
-                        spacing: 10
-                        Repeater {
-                            model: ["#d71921", "#f2f2f2", "#2b7de3", "#2ec46b", "#f5c518"]
-                            delegate: Rectangle {
-                                required property string modelData
-                                width: 24; height: 24; radius: 12
-                                color: "transparent"
-                                border.color: Settings.s.accent === modelData ? Theme.fg : Theme.blockBorder
-                                border.width: 1
-                                Rectangle {
-                                    anchors.centerIn: parent
-                                    width: 13; height: 13; radius: 6.5
-                                    color: parent.modelData
-                                }
-                                MouseArea {
-                                    anchors.fill: parent
-                                    onClicked: Settings.s.accent = parent.modelData
-                                }
-                            }
-                        }
-                    }
-                    Item { width: 1; height: 8 }
-                    SliderRow {
-                        label: "UI SCALE"
-                        valueText: Math.round(Settings.s.scale * 100) + "%"
-                        value: (Settings.s.scale - 0.85) / 0.45
-                        onMoved: v => Settings.s.scale = Math.round((0.85 + v * 0.45) * 20) / 20
-                    }
-                    DotText {
-                        text: "SCALES BAR, TILES AND DOT FONTS"
-                        px: 0.8; gap: 0.8; color: Theme.dim
-                    }
-                    Item { width: 1; height: 8 }
-                    ToggleRow { label: "DOT MATRIX FONT"; key: "dotFont" }
-                    DotText {
-                        text: "OFF = PLAIN TEXT INSTEAD OF DOTS"
-                        px: 0.8; gap: 0.8; color: Theme.dim
-                    }
-                }
-
-                // ABOUT
-                Column {
-                    visible: root.tab === 6
-                    width: parent.width
-                    spacing: 10
-                    Item { width: 1; height: 8 }
-                    DotText { text: "GLUEQS"; px: 2.6; gap: 1.3 }
-                    DotText {
-                        text: "DOT MATRIX SHELL FOR GLUEWC"
-                        px: 1; gap: 1; color: Theme.mid
-                    }
-                    Item { width: 1; height: 8 }
-                    DotText { text: "DOT MATRIX. BLACK. ONE RED."; px: 0.9; gap: 0.9; color: Theme.red }
-                    DotText { text: "CONFIG " + "~/.CONFIG/QUICKSHELL/GLUEQS"; px: 0.9; gap: 0.9; color: Theme.dim }
-                    DotText { text: "SETTINGS SAVED TO SETTINGS.JSON"; px: 0.9; gap: 0.9; color: Theme.dim }
-                    Item { width: 1; height: 8 }
-                    Rectangle {
-                        width: 60; height: 24; radius: 6
-                        color: "transparent"
-                        border.color: Theme.blockBorder
-                        DotText {
-                            anchors.centerIn: parent
-                            text: "RESET"
-                            px: 1; gap: 1; color: rma.containsMouse ? Theme.red : Theme.mid
-                        }
-                        MouseArea {
-                            id: rma
-                            anchors.fill: parent
-                            hoverEnabled: true
+                        Item { width: 1; height: 8 }
+                        DotText { text: "GLUEQS"; px: 2.6; gap: 1.3 }
+                        Text { text: "Dot-matrix shell for gluewc. Black, white, one red."; color: Theme.fg; font.family: Theme.uiFont; font.pixelSize: 13 }
+                        Item { width: 1; height: 6 }
+                        Text { text: "Shell files    " + Quickshell.shellPath("").replace(root.homeDir, "~"); color: "#9a9a9a"; font.family: Theme.uiFont; font.pixelSize: 12 }
+                        Text { text: "Settings       " + Settings.dir.replace(root.homeDir, "~") + "/settings.json"; color: "#9a9a9a"; font.family: Theme.uiFont; font.pixelSize: 12 }
+                        Text { visible: Gluewc.available; text: "Compositor     " + Gluewc.configPath.replace(root.homeDir, "~"); color: "#9a9a9a"; font.family: Theme.uiFont; font.pixelSize: 12 }
+                        Item { width: 1; height: 10 }
+                        GwButton {
+                            label: "RESET THE BAR LAYOUT"; danger: true
                             onClicked: {
                                 Settings.s.accent = "#d71921";
                                 Settings.s.scale = 1.0;
@@ -594,26 +423,12 @@ PanelWindow {
                                 Settings.s.barSolid = false;
                                 Settings.s.barLeft = "settings,launcher,workspaces,tray,media";
                                 Settings.s.barCenter = "weather,clock,notifs";
-                                Settings.s.barRight = "netspeed,network,volume,battery,power";
+                                Settings.s.barRight = "netspeed,network,volume,brightness,battery,power";
                             }
                         }
+                        Note { text: "Accent, scale, position and the widget zones go back to the defaults. Everything else stays." }
                     }
                 }
-            }
-            }
-        }
-
-        TextInput {
-            id: locInput
-            width: 1; height: 1; opacity: 0
-            Keys.onEscapePressed: root.locEditing = false
-            Keys.onReturnPressed: {
-                Settings.s.weatherLocation = text.trim();
-                root.locEditing = false;
-            }
-            Keys.onEnterPressed: {
-                Settings.s.weatherLocation = text.trim();
-                root.locEditing = false;
             }
         }
     }
@@ -629,7 +444,7 @@ PanelWindow {
     }
     Timer {
         id: shotTimer
-        interval: 1000
+        interval: 1500
         onTriggered: content.grabToImage(res =>
             res.saveToFile(Quickshell.env("GLUEQS_SHOT") + "/settings-" + root.screen.name + ".png"))
     }
