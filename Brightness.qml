@@ -10,7 +10,13 @@ import QtQuick
 Singleton {
     id: root
 
+    // GLUEQS_BACKLIGHT_DIR points at a fake sysfs tree for tests
+    readonly property string base: (Quickshell.env("GLUEQS_BACKLIGHT_DIR") ?? "") !== ""
+                                   ? Quickshell.env("GLUEQS_BACKLIGHT_DIR") : "/sys/class/backlight"
+    readonly property bool fake: base !== "/sys/class/backlight"
     property string device: ""
+    // what set() writes through: brightnessctl, light, sysfs, or nothing
+    property string writer: ""
     property int max: 0
     property int raw: 0
     // level and percent are assigned, not bound: the OSD reads them from the
@@ -29,7 +35,7 @@ Singleton {
     // the panel; take the first one
     Process {
         running: true
-        command: ["sh", "-c", "ls -1 /sys/class/backlight 2>/dev/null | head -1"]
+        command: ["sh", "-c", 'ls -1 "$1" 2>/dev/null | head -1', "glueqs", root.base]
         stdout: StdioCollector {
             onStreamFinished: {
                 const d = text.trim();
@@ -38,9 +44,37 @@ Singleton {
         }
     }
 
+    // pick the writer once the device is known; the fake tree is always sysfs
+    Process {
+        running: root.device !== ""
+        command: ["sh", "-c",
+            'if [ -n "$3" ]; then echo sysfs; elif command -v brightnessctl >/dev/null 2>&1; then echo brightnessctl; '
+            + 'elif command -v light >/dev/null 2>&1; then echo light; elif [ -w "$1/$2/brightness" ]; then echo sysfs; fi',
+            "glueqs", root.base, root.device, root.fake ? "1" : ""]
+        stdout: StdioCollector { onStreamFinished: root.writer = text.trim() }
+    }
+
+    readonly property bool canSet: writer !== ""
+
+    // percent 0..100; 0 switches the panel off, the brightness keys bring it back
+    function set(percent) {
+        if (!available || !canSet) return;
+        const p = Math.max(0, Math.min(100, Math.round(percent)));
+        const rawv = Math.round(p / 100 * root.max);
+        setter.command = ["sh", "-c",
+            'case "$1" in brightnessctl) brightnessctl -q -d "$3" set "$2%" ;; light) light -S "$2" ;; '
+            + 'sysfs) printf %s "$4" > "$5/$3/brightness" && { [ -n "$6" ] && printf %s "$4" > "$5/$3/actual_brightness"; :; } ;; esac',
+            "glueqs", writer, String(p), device, String(rawv), base, fake ? "1" : ""];
+        setter.running = true;
+    }
+    Process {
+        id: setter
+        onExited: curFile.reload()
+    }
+
     FileView {
         id: maxFile
-        path: root.device === "" ? "" : "/sys/class/backlight/" + root.device + "/max_brightness"
+        path: root.device === "" ? "" : root.base + "/" + root.device + "/max_brightness"
         preload: true
         printErrors: false
         onLoaded: {
@@ -55,8 +89,10 @@ Singleton {
     // contents, which left the OSD a step behind every keypress.
     FileView {
         id: curFile
-        path: root.device === "" ? "" : "/sys/class/backlight/" + root.device + "/actual_brightness"
+        path: root.device === "" ? "" : root.base + "/" + root.device + "/actual_brightness"
         preload: true
+        watchChanges: root.fake
+        onFileChanged: reload()
         printErrors: false
         onLoaded: root.apply(parseInt(text()) || 0)
     }
@@ -73,7 +109,7 @@ Singleton {
     }
 
     Process {
-        running: true
+        running: !root.fake
         command: ["udevadm", "monitor", "--udev", "--subsystem-match=backlight"]
         stdout: SplitParser {
             onRead: line => { if (line.indexOf("change") >= 0) curFile.reload(); }

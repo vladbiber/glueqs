@@ -3,13 +3,29 @@ import Quickshell
 import Quickshell.Io
 import QtQuick
 
-// Persistent shell settings, stored next to the config as settings.json.
+// Persistent shell settings in $XDG_CONFIG_HOME/glueqs/settings.json, so the
+// shell itself can live somewhere read-only (a package, the Nix store). A
+// settings.json still sitting next to the QML is copied over once.
 Singleton {
     id: root
     readonly property var s: json
+    readonly property string dir: {
+        const x = Quickshell.env("XDG_CONFIG_HOME");
+        return (x !== null && x !== undefined && x !== "" ? x : Quickshell.env("HOME") + "/.config") + "/glueqs";
+    }
+    property bool ready: false
+
+    Process {
+        running: true
+        command: ["sh", "-c",
+            'mkdir -p "$1" && if [ ! -e "$1/settings.json" ] && [ -e "$2" ]; then cp "$2" "$1/settings.json"; fi',
+            "glueqs", root.dir, Quickshell.shellPath("settings.json")]
+        onExited: { root.ready = true; store.reload(); }
+    }
 
     FileView {
-        path: Quickshell.shellPath("settings.json")
+        id: store
+        path: root.dir + "/settings.json"
         watchChanges: true
         onFileChanged: reload()
         onAdapterUpdated: writeAdapter()
@@ -21,6 +37,7 @@ Singleton {
             property bool showNetwork: true
             property bool showVolume: true
             property bool showBattery: true
+            property bool showBrightness: true
             property bool showWeather: true
             property bool showLauncher: true
             property bool showWorkspaces: true
@@ -36,7 +53,7 @@ Singleton {
             property bool barSolid: false
             property string barLeft: "settings,launcher,workspaces,tray,media"
             property string barCenter: "weather,clock,notifs"
-            property string barRight: "netspeed,network,volume,battery,power"
+            property string barRight: "netspeed,network,volume,brightness,battery,power"
             property int osdDuration: 1600
             property int volumeStep: 5
             property string weatherLocation: ""
@@ -61,7 +78,7 @@ Singleton {
 
     // one-time migration: add widgets that predate this config, keeping user order
     Timer {
-        interval: 1500; running: true
+        interval: 1500; running: root.ready
         onTriggered: {
             const all = (json.barLeft + "," + json.barCenter + "," + json.barRight)
                 .split(",").filter(x => x !== "");
@@ -75,6 +92,12 @@ Singleton {
                 const c = json.barCenter.split(",").filter(x => x !== "");
                 c.push("notifs");
                 json.barCenter = c.join(",");
+            }
+            if (!all.includes("brightness")) {
+                const r = json.barRight.split(",").filter(x => x !== "");
+                const i = r.indexOf("battery");
+                r.splice(i >= 0 ? i : r.length, 0, "brightness");
+                json.barRight = r.join(",");
             }
         }
     }
