@@ -51,16 +51,30 @@ PanelWindow {
                 spacing: 14
                 DotText { anchors.verticalCenter: parent.verticalCenter; text: "GLUEWC"; px: 2.2; gap: 1.2 }
                 Column {
+                    id: titleCol
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: 2
                     Text { text: "Compositor settings"; color: Theme.fg; font.family: Theme.uiFont; font.pixelSize: 13; font.weight: Font.Medium }
-                    Text {
-                        text: Gluewc.configPath.replace(Gluewc.home, "~") + "   ·   saved changes apply immediately"
-                        color: "#9a9a9a"; font.family: Theme.uiFont; font.pixelSize: 11
+                    Row {
+                        spacing: 0
+                        Text {
+                            // the path stops before the header buttons, home shown as ~
+                            width: Math.min(implicitWidth, Math.max(80, headerRight.x - titleCol.x - noteText.implicitWidth - 24))
+                            text: Gluewc.home !== "" && Gluewc.configPath.startsWith(Gluewc.home)
+                                  ? "~" + Gluewc.configPath.slice(Gluewc.home.length) : Gluewc.configPath
+                            elide: Text.ElideMiddle
+                            color: "#9a9a9a"; font.family: Theme.uiFont; font.pixelSize: 11
+                        }
+                        Text {
+                            id: noteText
+                            text: "   ·   saved changes apply immediately"
+                            color: "#9a9a9a"; font.family: Theme.uiFont; font.pixelSize: 11
+                        }
                     }
                 }
             }
             Row {
+                id: headerRight
                 anchors { right: parent.right; verticalCenter: parent.verticalCenter }
                 spacing: 12
                 GwButton {
