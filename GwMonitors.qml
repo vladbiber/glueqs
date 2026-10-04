@@ -44,13 +44,13 @@ Column {
     }
 
     component Small: Text {
-        color: "#9a9a9a"; font.family: Theme.uiFont; font.pixelSize: 11
+        color: Theme.muted; font.family: Theme.uiFont; font.pixelSize: 11
     }
     component Label: Text {
         color: Theme.fg; font.family: Theme.uiFont; font.pixelSize: 13; font.weight: Font.Medium
     }
     component Sub: Text {
-        color: "#9a9a9a"; font.family: Theme.uiFont; font.pixelSize: 11; font.letterSpacing: 1
+        color: Theme.muted; font.family: Theme.uiFont; font.pixelSize: 11; font.letterSpacing: 1
         topPadding: 12; bottomPadding: 4
     }
 
@@ -84,7 +84,7 @@ Column {
         width: parent.width
         height: 250
         radius: 10
-        color: "#080808"
+        color: Theme.bg
         border.color: Theme.blockBorder
         clip: true
 
@@ -154,8 +154,8 @@ Column {
                 width: Math.max(40, modelData.w * map.s)
                 height: Math.max(24, modelData.h * map.s)
                 radius: 6
-                color: dragging ? "#242424" : isSel ? "#1c1c1c" : bma.containsMouse ? "#181818" : "#121212"
-                border.color: isSel || modelData.focused ? Theme.red : "#3a3a3a"
+                color: dragging ? Theme.hover : isSel ? Theme.hover : bma.containsMouse ? Theme.surface : Theme.card
+                border.color: isSel || modelData.focused ? Theme.red : Theme.strong
                 border.width: isSel ? 2 : 1
                 z: dragging ? 10 : isSel ? 2 : 1
 
@@ -227,8 +227,8 @@ Column {
                 height: src ? Math.max(12, src.h * map.s - 2 * inset) : 0
                 z: 5
                 radius: 5
-                color: page.selected === modelData.name ? "#2a1214" : "#00000000"
-                border.color: page.selected === modelData.name ? Theme.red : "#6a2a2e"
+                color: page.selected === modelData.name ? Qt.alpha(Theme.red, 0.16) : "#00000000"
+                border.color: page.selected === modelData.name ? Theme.red : Qt.alpha(Theme.red, 0.45)
                 border.width: 1
                 Small {
                     anchors { bottom: parent.bottom; right: parent.right; margins: 5 }
@@ -313,7 +313,7 @@ Column {
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
                             text: card.o.enabled ? "ON" : "OFF"
-                            color: card.o.enabled ? Theme.fg : "#9a9a9a"
+                            color: card.o.enabled ? Theme.fg : Theme.muted
                             font.family: Theme.uiFont; font.pixelSize: 12; font.letterSpacing: 0.6
                         }
                         DotToggle {
@@ -329,7 +329,7 @@ Column {
                         width: parent.width
                         height: Math.min(212, modeList.contentHeight + 2)
                         radius: 8
-                        color: "#0e0e0e"
+                        color: Theme.panelSolid
                         border.color: Theme.blockBorder
                         clip: true
                         ListView {
@@ -346,13 +346,13 @@ Column {
                                                                        : card.cfg.mode === modelData
                                 readonly property bool live: !isPref && modelData === card.o.pw + "x" + card.o.ph + "@" + card.o.hz.toFixed(2)
                                 width: modeList.width; height: 30
-                                color: mma.containsMouse ? "#1a1a1a" : current ? "#161616" : "transparent"
+                                color: mma.containsMouse ? Theme.surface : current ? Theme.surface : "transparent"
                                 Rectangle { visible: mrow.current; width: 2; height: parent.height - 8; y: 4; color: Theme.red }
                                 Text {
                                     anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
                                     text: mrow.isPref ? "Preferred" + (card.o.preferred !== "none" ? "   " + page.modeLabel(card.o.preferred) : "")
                                                       : page.modeLabel(mrow.modelData)
-                                    color: mrow.current || mrow.live ? Theme.fg : "#c8c8c8"
+                                    color: mrow.current || mrow.live ? Theme.fg : Theme.muted
                                     font.family: Theme.uiFont; font.pixelSize: 12
                                     font.weight: mrow.current ? Font.DemiBold : Font.Normal
                                 }
@@ -414,7 +414,7 @@ Column {
                             }
                         }
                         Rectangle {
-                            width: 120; height: 24; radius: 6; color: "#141414"; border.color: Theme.blockBorder
+                            width: 120; height: 24; radius: 6; color: Theme.surface; border.color: Theme.blockBorder
                             Text { anchors.centerIn: parent; text: card.o.transform; color: Theme.fg; font.family: Theme.uiFont; font.pixelSize: 12 }
                         }
                         GwButton {
@@ -479,7 +479,7 @@ Column {
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
                             text: card.cfg.adaptive_sync === "true" ? "ON" : "OFF"
-                            color: card.cfg.adaptive_sync === "true" ? Theme.fg : "#9a9a9a"
+                            color: card.cfg.adaptive_sync === "true" ? Theme.fg : Theme.muted
                             font.family: Theme.uiFont; font.pixelSize: 12; font.letterSpacing: 0.6
                         }
                         DotToggle {

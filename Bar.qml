@@ -47,6 +47,9 @@ PanelWindow {
     Component { id: cPower;      PowerWidget {} }
     Component { id: cTray;       TrayWidget {} }
     Component { id: cNotifs;     NotifWidget {} }
+    Component { id: cStat;       StatWidget {} }
+    Component { id: cButton;     ButtonWidget {} }
+    Component { id: cViz;        VizWidget {} }
 
     // single source of truth for widget visibility (loaders collapse in the layout)
     readonly property var visMap: ({
@@ -67,6 +70,16 @@ PanelWindow {
         notifs: Settings.s.showNotifs
     })
 
+    // ids that take a parameter: cpu/ram/temp/disk are StatWidget kinds,
+    // the one-icon tiles are ButtonWidget kinds, viz:STYLE is a visualiser
+    readonly property var statKinds: ["cpu", "ram", "temp", "disk"]
+    readonly property var buttonKinds: ["keepawake", "wallpaper", "mic", "window", "caps", "spacer"]
+    function compFor(id) {
+        if (id.startsWith("viz:")) return cViz;
+        if (statKinds.includes(id)) return cStat;
+        if (buttonKinds.includes(id)) return cButton;
+        return comps[id] ?? null;
+    }
     readonly property var comps: ({
         settings: cSettings, launcher: cLauncher, workspaces: cWorkspaces,
         weather: cWeather, clock: cClock, media: cMedia, netspeed: cNetSpeed,
@@ -76,20 +89,27 @@ PanelWindow {
 
     component ZoneLoader: Loader {
         required property var modelData
-        sourceComponent: root.comps[modelData] ?? null
+        sourceComponent: root.compFor(modelData)
         visible: root.visMap[modelData] ?? true
+        onLoaded: {
+            if (modelData.startsWith("viz:")) item.style = modelData.slice(4);
+            else if (item.kind !== undefined) item.kind = modelData;
+        }
     }
 
     Rectangle {
         id: content
-        anchors.fill: parent
-        color: Settings.s.barSolid ? Theme.bg : "transparent"
+        anchors { fill: parent; margins: Theme.barMargin }
+        radius: Theme.floating ? Theme.panelRadius : 0
+        color: Settings.s.barSolid ? Qt.alpha(Theme.bg, Settings.s.panelOpacity) : "transparent"
+        border.color: Settings.s.barSolid && Theme.floating ? Theme.blockBorder : "transparent"
+        Behavior on color { ColorAnimation { duration: Theme.ms(250) } }
 
         // ---- horizontal layout ----
         Row {
             visible: !root.vertical
             anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
-            spacing: 8
+            spacing: Theme.spacing
             Repeater { model: root.vertical ? [] : root.leftModel; delegate: ZoneLoader {} }
         }
 
@@ -104,26 +124,26 @@ PanelWindow {
         Row {
             visible: !root.vertical && root.pivot
             anchors { right: hClock.left; rightMargin: 8; verticalCenter: parent.verticalCenter }
-            spacing: 8
+            spacing: Theme.spacing
             Repeater { model: (!root.vertical && root.pivot) ? root.centerPre : []; delegate: ZoneLoader {} }
         }
         Row {
             visible: !root.vertical && root.pivot
             anchors { left: hClock.right; leftMargin: 8; verticalCenter: parent.verticalCenter }
-            spacing: 8
+            spacing: Theme.spacing
             Repeater { model: (!root.vertical && root.pivot) ? root.centerPost : []; delegate: ZoneLoader {} }
         }
         Row {
             visible: !root.vertical && !root.pivot
             anchors.centerIn: parent
-            spacing: 8
+            spacing: Theme.spacing
             Repeater { model: (!root.vertical && !root.pivot) ? root.centerModel : []; delegate: ZoneLoader {} }
         }
 
         Row {
             visible: !root.vertical
             anchors { right: parent.right; rightMargin: 8; verticalCenter: parent.verticalCenter }
-            spacing: 8
+            spacing: Theme.spacing
             Repeater { model: root.vertical ? [] : root.rightModel; delegate: ZoneLoader {} }
         }
 
@@ -131,7 +151,7 @@ PanelWindow {
         Column {
             visible: root.vertical
             anchors { top: parent.top; topMargin: 8; horizontalCenter: parent.horizontalCenter }
-            spacing: 8
+            spacing: Theme.spacing
             Repeater { model: root.vertical ? root.leftModel : []; delegate: ZoneLoader {} }
         }
 
@@ -145,26 +165,26 @@ PanelWindow {
         Column {
             visible: root.vertical && root.pivot
             anchors { bottom: vClock.top; bottomMargin: 8; horizontalCenter: parent.horizontalCenter }
-            spacing: 8
+            spacing: Theme.spacing
             Repeater { model: (root.vertical && root.pivot) ? root.centerPre : []; delegate: ZoneLoader {} }
         }
         Column {
             visible: root.vertical && root.pivot
             anchors { top: vClock.bottom; topMargin: 8; horizontalCenter: parent.horizontalCenter }
-            spacing: 8
+            spacing: Theme.spacing
             Repeater { model: (root.vertical && root.pivot) ? root.centerPost : []; delegate: ZoneLoader {} }
         }
         Column {
             visible: root.vertical && !root.pivot
             anchors.centerIn: parent
-            spacing: 8
+            spacing: Theme.spacing
             Repeater { model: (root.vertical && !root.pivot) ? root.centerModel : []; delegate: ZoneLoader {} }
         }
 
         Column {
             visible: root.vertical
             anchors { bottom: parent.bottom; bottomMargin: 8; horizontalCenter: parent.horizontalCenter }
-            spacing: 8
+            spacing: Theme.spacing
             Repeater { model: root.vertical ? root.rightModel : []; delegate: ZoneLoader {} }
         }
     }

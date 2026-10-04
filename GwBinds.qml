@@ -65,7 +65,7 @@ Column {
         editing = null;
     }
 
-    component Small: Text { color: "#9a9a9a"; font.family: Theme.uiFont; font.pixelSize: 11 }
+    component Small: Text { color: Theme.muted; font.family: Theme.uiFont; font.pixelSize: 11 }
 
     // GLUEQS_SHOT_BIND=edit|capture|new opens the editor for screenshots
     Timer {
@@ -88,7 +88,7 @@ Column {
                 required property string modelData
                 required property int index
                 width: t.implicitWidth + 14; height: 24; radius: 6
-                color: "#0a0a0a"; border.color: "#363636"
+                color: Theme.panelSolid; border.color: Theme.strong
                 Text { id: t; anchors.centerIn: parent; text: parent.modelData; color: Theme.fg; font.family: Theme.uiFont; font.pixelSize: 12; font.weight: Font.DemiBold }
             }
         }
@@ -135,7 +135,7 @@ Column {
         width: parent.width
         height: visible ? editor.implicitHeight + 32 : 0
         radius: 10
-        color: "#111111"
+        color: Theme.card
         border.color: Theme.red
         Column {
             id: editor
@@ -247,7 +247,7 @@ Column {
             Item {
                 anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
                 height: 54
-                Rectangle { anchors.fill: parent; radius: 8; color: rma.containsMouse ? "#151515" : "transparent" }
+                Rectangle { anchors.fill: parent; radius: 8; color: rma.containsMouse ? Theme.surface : "transparent" }
                 Chips {
                     id: chips
                     anchors { left: parent.left; leftMargin: 6; verticalCenter: parent.verticalCenter }
@@ -274,7 +274,7 @@ Column {
                     GwButton { anchors.verticalCenter: parent.verticalCenter; label: "EDIT"; small: true; onClicked: page.startEdit(srow.modelData) }
                 }
                 MouseArea { id: rma; anchors.fill: parent; hoverEnabled: true; acceptedButtons: Qt.NoButton }
-                Rectangle { anchors { left: parent.left; right: parent.right; bottom: parent.bottom } height: 1; color: "#1a1a1a" }
+                Rectangle { anchors { left: parent.left; right: parent.right; bottom: parent.bottom } height: 1; color: Theme.surface }
             }
         }
     }
@@ -302,7 +302,7 @@ Column {
                 anchors { left: parent.left; leftMargin: 198; verticalCenter: parent.verticalCenter }
                 width: 52
                 text: brow.modelData.mode === "normal" ? "NORMAL" : "INSERT"
-                color: brow.modelData.mode === "normal" ? Theme.red : "#9a9a9a"
+                color: brow.modelData.mode === "normal" ? Theme.red : Theme.muted
                 font.pixelSize: 10; font.letterSpacing: 0.8
             }
             GwField {
@@ -316,7 +316,7 @@ Column {
                 label: "X"; small: true; danger: true; implicitWidth: 26
                 onClicked: Gluewc.removeBind(brow.modelData.mode, brow.modelData.combo)
             }
-            Rectangle { anchors { left: parent.left; right: parent.right; bottom: parent.bottom } height: 1; color: "#1a1a1a" }
+            Rectangle { anchors { left: parent.left; right: parent.right; bottom: parent.bottom } height: 1; color: Theme.surface }
         }
     }
     Small {

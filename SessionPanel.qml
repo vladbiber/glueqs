@@ -22,7 +22,7 @@ PanelWindow {
         id: content
         anchors.fill: parent
         radius: 14
-        color: "#0d0d0d"
+        color: Theme.panel
         border.color: Theme.blockBorder
         border.width: 1
 
@@ -42,7 +42,7 @@ PanelWindow {
                     width: rows.width
                     height: 34
                     radius: 8
-                    color: area.containsMouse ? "#1c1c1c" : "transparent"
+                    color: area.containsMouse ? Theme.hover : "transparent"
                     border.color: armed ? Theme.red : "transparent"
                     border.width: 1
 

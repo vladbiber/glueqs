@@ -7,7 +7,7 @@ Rectangle {
     width: parent.width
     implicitHeight: col.implicitHeight + 2
     radius: 10
-    color: "#111111"
+    color: Theme.card
     border.color: Theme.blockBorder
     border.width: 1
     Column {

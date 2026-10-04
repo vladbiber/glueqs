@@ -19,8 +19,11 @@ Singleton {
     readonly property bool playing: MediaService.active !== null && MediaService.active.isPlaying
     readonly property bool held: notWhileMedia && playing
 
-    readonly property bool offArmed: offMin > 0 && Brightness.available && Brightness.canSet
-    readonly property bool suspendArmed: suspendMin > 0 && suspendCmd !== ""
+    // keep awake (the bar's coffee cup) holds both stages
+    readonly property bool keepAwake: Settings.s.keepAwake
+    readonly property bool sleepOn: Settings.s.sleepEnabled
+    readonly property bool offArmed: sleepOn && !keepAwake && offMin > 0 && Brightness.available && Brightness.canSet
+    readonly property bool suspendArmed: !keepAwake && suspendMin > 0 && suspendCmd !== ""
     readonly property real offTimeout: testSeconds > 0 ? testSeconds : offMin * 60
     readonly property real suspendTimeout: testSeconds > 0 ? testSeconds * 3 : suspendMin * 60
 
@@ -42,7 +45,8 @@ Singleton {
         case "armed": return (offArmed ? "Screen off after " + offMin + " min without input" : "Screen stays on")
             + (suspendArmed ? ", suspend after " + suspendMin + " min." : ".")
             + (notWhileMedia ? "  Not while media plays." : "");
-        default: return "Off. Set a timeout to arm it.";
+        default: return keepAwake ? "Keep awake is on: the screen stays lit and nothing suspends."
+                      : !sleepOn ? "Sleep mode is off." : "Off. Set a timeout to arm it.";
         }
     }
 
@@ -72,6 +76,7 @@ Singleton {
     }
     // media stopped while idle: act now
     onHeldChanged: if (!held && offMonitor.isIdle && offMonitor.enabled) goOff()
+    onOffArmedChanged: if (!offArmed) restore()
 
     // ---- suspend ----
     property string suspendCmd: ""

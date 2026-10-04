@@ -38,7 +38,7 @@ Block {
                     anchors.fill: parent
                     anchors.margins: -5
                     radius: 6
-                    color: tma.containsMouse ? "#1c1c1c" : "transparent"
+                    color: tma.containsMouse ? Theme.hover : "transparent"
                 }
 
                 Image {

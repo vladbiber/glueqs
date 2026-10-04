@@ -12,7 +12,7 @@ Row {
     Text {
         anchors.verticalCenter: parent.verticalCenter
         text: parent.on ? "ON" : "OFF"
-        color: parent.on ? Theme.fg : "#9a9a9a"
+        color: parent.on ? Theme.fg : Theme.muted
         font.family: Theme.uiFont
         font.pixelSize: 12
         font.letterSpacing: 0.6

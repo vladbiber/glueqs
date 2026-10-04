@@ -15,7 +15,7 @@ Column {
         GwRow { label: "No backlight"; hint: "Nothing under /sys/class/backlight on this machine. External monitors are set from their own buttons." }
     }
 
-    GwTitle { text: "SLEEP MODE"; sub: "After a while without input the screen goes dark, then the machine can suspend. Any click or key brings the screen back at the level it had." }
+    GwTitle { text: "SLEEP MODE"; sub: "A dark screen after a while without input. Nothing on the laptop stops." }
     SleepControls {}
 
     GwTitle { visible: Gluewc.available; text: "MONITORS"; sub: "Layout, resolution, scale, rotation and mirroring have their own page." }

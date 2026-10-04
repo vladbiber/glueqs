@@ -10,7 +10,7 @@ Row {
     Rectangle {
         anchors.verticalCenter: parent.verticalCenter
         width: 30; height: 30; radius: 15
-        color: "#0a0a0a"
+        color: Theme.panelSolid
         border.color: Theme.blockBorder
         Rectangle {
             anchors.centerIn: parent

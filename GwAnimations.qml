@@ -28,7 +28,7 @@ Column {
             Text { text: crow.label; color: Theme.fg; font.family: Theme.uiFont; font.pixelSize: 13; font.weight: Font.Medium }
             Text {
                 text: "cubic-bezier x1,y1,x2,y2 like CSS" + (Gluewc.hasDefault(crow.key) ? "   ·   default " + Gluewc.defaults[crow.key] : "")
-                color: "#9a9a9a"; font.family: Theme.uiFont; font.pixelSize: 11
+                color: Theme.muted; font.family: Theme.uiFont; font.pixelSize: 11
             }
             Row {
                 spacing: 8
@@ -52,7 +52,7 @@ Column {
             anchors { right: parent.right; rightMargin: 14; verticalCenter: parent.verticalCenter }
             width: 96; height: 72
             radius: 8
-            color: "#0a0a0a"
+            color: Theme.panelSolid
             border.color: Theme.blockBorder
             Canvas {
                 anchors { fill: parent; margins: 10 }
@@ -64,7 +64,7 @@ Column {
                     const ctx = getContext("2d");
                     ctx.reset();
                     const w = width, h = height, p = pts;
-                    ctx.strokeStyle = "#2a2a2a"; ctx.lineWidth = 1;
+                    ctx.strokeStyle = String(Theme.border); ctx.lineWidth = 1;
                     ctx.beginPath(); ctx.moveTo(0, h); ctx.lineTo(w, 0); ctx.stroke();
                     ctx.strokeStyle = String(accent); ctx.lineWidth = 2;
                     ctx.beginPath(); ctx.moveTo(0, h);
@@ -73,7 +73,7 @@ Column {
                 }
             }
         }
-        Rectangle { visible: !crow.last; anchors { left: parent.left; right: parent.right; bottom: parent.bottom; leftMargin: 14; rightMargin: 14 } height: 1; color: "#202020" }
+        Rectangle { visible: !crow.last; anchors { left: parent.left; right: parent.right; bottom: parent.bottom; leftMargin: 14; rightMargin: 14 } height: 1; color: Theme.line }
     }
 
     GwTitle { first: true; text: "MOTION"; sub: "Window moves, workspace switches and the overview all follow these." }

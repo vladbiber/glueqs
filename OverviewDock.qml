@@ -32,8 +32,13 @@ PanelWindow {
     readonly property int slot: 58
     readonly property int gridCols: 6
 
-    implicitWidth: appsOpen ? 640 : Math.max(slot + 24, dash.implicitWidth + 24)
-    implicitHeight: appsOpen ? 470 : 76
+    // the window is wider and taller than the dash so a hover label can stick
+    // out of it whole; the mask keeps clicks outside the dash going through
+    readonly property int dashWidth: Math.max(slot + 24, dash.implicitWidth + 24)
+    readonly property int labelRoom: 40
+    implicitWidth: appsOpen ? 640 : (root.screen?.width ?? 1920)
+    implicitHeight: appsOpen ? 470 : 76 + labelRoom
+    mask: Region { item: content }
 
     // ---- pinned apps ----
     readonly property var pinnedIds: Settings.s.dockPinned.split(",").filter(x => x !== "")
@@ -112,9 +117,12 @@ PanelWindow {
 
     Rectangle {
         id: content
-        anchors.fill: parent
+        width: root.appsOpen ? parent.width : root.dashWidth
+        height: root.appsOpen ? parent.height : 76
+        x: Math.round((parent.width - width) / 2)
+        y: root.atTop ? 0 : parent.height - height
         radius: 18
-        color: "#ee0d0d0d"   // Qt reads 8-digit hex as #AARRGGBB
+        color: Theme.panel
         border.color: Theme.blockBorder
         border.width: 1
 
@@ -131,7 +139,7 @@ PanelWindow {
                 anchors { top: parent.top; left: parent.left; right: parent.right }
                 height: 30
                 radius: 8
-                color: "#161616"
+                color: Theme.surface
                 border.color: search.activeFocus ? Theme.red : Theme.blockBorder
                 border.width: 1
 
@@ -217,7 +225,7 @@ PanelWindow {
                     Rectangle {
                         anchors { fill: parent; margins: 3 }
                         radius: 10
-                        color: gma.containsMouse ? "#1c1c1c" : "transparent"
+                        color: gma.containsMouse ? Theme.hover : "transparent"
                         border.color: root.isPinned(gcell.modelData.id)
                                     ? Theme.red : "transparent"
                         border.width: 1
@@ -233,6 +241,7 @@ PanelWindow {
                                 asynchronous: true
                             }
                             DotText {
+                                id: gname
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 text: gcell.modelData.name.toUpperCase()
                                 maxWidth: gcell.width - 8
@@ -244,6 +253,10 @@ PanelWindow {
                             id: gma
                             anchors.fill: parent
                             hoverEnabled: true
+                            onContainsMouseChanged: {
+                                if (containsMouse) gridTip.cell = gname;
+                                else if (gridTip.cell === gname) gridTip.cell = null;
+                            }
                             acceptedButtons: Qt.LeftButton | Qt.RightButton
                             onClicked: mouse => {
                                 if (mouse.button === Qt.RightButton)
@@ -271,6 +284,33 @@ PanelWindow {
                    ? (appGrid.contentY / (appGrid.contentHeight - appGrid.height))
                      * (appGrid.height - height)
                    : 0)
+            }
+        }
+
+        // full name of a hovered app whose label in the grid got cut short,
+        // drawn over the grid so it is not clipped by the cell or the view
+        Rectangle {
+            id: gridTip
+            property var cell: null
+            parent: content
+            visible: root.appsOpen && cell !== null && cell.cut
+            readonly property point at: {
+                appGrid.contentY;
+                return cell ? cell.mapToItem(content, cell.width / 2, 0) : Qt.point(0, 0);
+            }
+            width: tipText.implicitWidth + 12
+            height: tipText.implicitHeight + 8
+            x: Math.max(4, Math.min(content.width - width - 4, Math.round(at.x - width / 2)))
+            y: Math.round(at.y - 4)
+            z: 10
+            radius: 6
+            color: Qt.alpha(Theme.panelSolid, 0.94)
+            border.color: Theme.blockBorder
+            DotText {
+                id: tipText
+                anchors.centerIn: parent
+                text: gridTip.cell ? gridTip.cell.text : ""
+                px: 0.7; gap: 0.7
             }
         }
 
@@ -338,7 +378,7 @@ PanelWindow {
                 anchors.verticalCenter: parent.verticalCenter
                 width: 46; height: 46
                 radius: 12
-                color: root.appsOpen ? "#242424" : (ama.containsMouse ? "#1c1c1c" : "transparent")
+                color: root.appsOpen ? Theme.hover : (ama.containsMouse ? Theme.hover : "transparent")
                 border.color: root.appsOpen ? Theme.red : Theme.blockBorder
                 border.width: 1
                 DotIcon {
@@ -380,7 +420,7 @@ PanelWindow {
         Rectangle {
             anchors.fill: parent
             radius: 12
-            color: ima.containsMouse ? "#1c1c1c" : "transparent"
+            color: ima.containsMouse ? Theme.hover : "transparent"
             border.color: ima.containsMouse ? Theme.blockBorder : "transparent"
             border.width: 1
 
@@ -411,20 +451,25 @@ PanelWindow {
             color: Theme.red
         }
 
-        // hover label above the tile
+        // hover label on the open side of the tile (above, or below when the
+        // dash sits at the top), kept inside the window
         Rectangle {
             visible: ima.containsMouse
-            anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.top; bottomMargin: 6 }
+            readonly property real wantX: (item.width - width) / 2
+            x: {
+                const p = item.mapToItem(null, 0, 0);
+                return Math.max(4 - p.x, Math.min(root.width - 4 - p.x - width, wantX));
+            }
+            y: root.atTop ? item.height + 10 : -height - 6
             width: lbl.implicitWidth + 12
             height: lbl.implicitHeight + 8
             radius: 6
-            color: "#dd000000"
+            color: Qt.alpha(Theme.panelSolid, 0.87)
             border.color: Theme.blockBorder
             DotText {
                 id: lbl
                 anchors.centerIn: parent
                 text: (item.entry ? item.entry.name : item.appId).toUpperCase()
-                maxWidth: 220
                 px: 0.8; gap: 0.8
             }
         }

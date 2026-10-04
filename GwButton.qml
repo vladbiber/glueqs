@@ -12,7 +12,7 @@ Rectangle {
     implicitWidth: lbl.implicitWidth + (small ? 16 : 22)
     implicitHeight: small ? 24 : 30
     radius: 7
-    color: bma.containsMouse ? "#1e1e1e" : active ? "#181818" : "transparent"
+    color: bma.containsMouse ? Theme.hover : active ? Theme.surface : "transparent"
     border.color: active ? Theme.red : danger && bma.containsMouse ? Theme.red : Theme.blockBorder
     border.width: 1
     opacity: enabled ? 1 : 0.4

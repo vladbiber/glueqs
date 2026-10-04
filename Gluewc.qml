@@ -25,6 +25,7 @@ Singleton {
     property var lines: []          // the file, one string per line
     property var values: ({})       // scalar key -> value, last assignment wins
     property var binds: []          // { mode, combo, action, line }
+    property var macros: []         // { name, trigger, type, mode, ... line }
     property var autostarts: []     // { cmd, line }
     property var outputCfg: ({})    // output name -> { key: value }
     property var defaults: ({})     // scalars from config.def.conf
@@ -69,7 +70,7 @@ Singleton {
         for (const line of text.split("\n")) {
             const kv = splitLine(line);
             if (!kv) continue;
-            if (["bind_insert", "bind_normal", "autostart", "output"].includes(kv.key)) continue;
+            if (["bind_insert", "bind_normal", "autostart", "output", "macro"].includes(kv.key)) continue;
             out[kv.key] = kv.value;
         }
         return out;
@@ -90,14 +91,36 @@ Singleton {
         return defaultBinds.find(b => b.mode === mode && b.combo === combo) ?? null;
     }
 
+    function parseMacro(value, line) {
+        const parts = value.split(/\s+/).filter(x => x !== "");
+        if (parts.length === 0) return null;
+        const m = ({ name: parts.shift(), trigger: "", type: "sequence", mode: "hold",
+                    button: "left", cps: 10, interval: 80, press: 10,
+                    sequence: "q,p,o,space", line: line });
+        for (const p of parts) {
+            const i = p.indexOf("=");
+            if (i <= 0) continue;
+            const k = p.slice(0, i), v = p.slice(i + 1);
+            if (["trigger", "type", "mode", "button", "sequence"].includes(k)) m[k] = v;
+            else if (["cps", "interval", "press"].includes(k)) {
+                const n = parseInt(v);
+                if (!isNaN(n)) m[k] = n;
+            }
+        }
+        return m;
+    }
+
     function parse(text) {
         const ls = text.split("\n");
         if (ls.length > 0 && ls[ls.length - 1] === "") ls.pop();
-        const vals = ({}), bs = [], as = [], oc = ({});
+        const vals = ({}), bs = [], ms = [], as = [], oc = ({});
         for (let n = 0; n < ls.length; n++) {
             const kv = splitLine(ls[n]);
             if (!kv) continue;
-            if (kv.key === "bind_insert" || kv.key === "bind_normal") {
+            if (kv.key === "macro") {
+                const m = parseMacro(kv.value, n);
+                if (m) ms.push(m);
+            } else if (kv.key === "bind_insert" || kv.key === "bind_normal") {
                 const j = kv.value.indexOf("=");
                 if (j < 0) continue;
                 bs.push({ mode: kv.key === "bind_insert" ? "insert" : "normal",
@@ -118,6 +141,7 @@ Singleton {
         lines = ls;
         values = vals;
         binds = bs;
+        macros = ms;
         autostarts = as;
         outputCfg = oc;
         loaded = true;
@@ -219,6 +243,45 @@ Singleton {
         if (!b) return;
         const ls = lines.slice();
         ls.splice(b.line, 1);
+        commit(ls);
+    }
+
+    // ---- macros ----
+    function safeMacroName(name) {
+        let out = name.trim().toLowerCase().replace(/[^a-z0-9_-]+/g, "_");
+        out = out.replace(/^_+|_+$/g, "");
+        return out === "" ? "macro" : out;
+    }
+    function macroLine(m) {
+        let s = "macro = " + safeMacroName(m.name)
+              + " trigger=" + m.trigger
+              + " type=" + m.type
+              + " mode=" + m.mode
+              + " press=" + Math.max(1, Math.round(m.press));
+        if (m.type === "click")
+            s += " button=" + m.button + " cps=" + Math.max(1, Math.round(m.cps));
+        else
+            s += " interval=" + Math.max(0, Math.round(m.interval))
+              + " sequence=" + String(m.sequence).replace(/\s+/g, "");
+        return s;
+    }
+    function setMacro(originalName, macro) {
+        const ls = lines.slice();
+        const old = macros.find(m => m.name === originalName);
+        const fresh = macroLine(macro);
+        if (old) ls[old.line] = fresh;
+        else {
+            const same = macros;
+            if (same.length > 0) ls.splice(same[same.length - 1].line + 1, 0, fresh);
+            else appendUnderHeader(ls, [fresh]);
+        }
+        commit(ls);
+    }
+    function removeMacro(name) {
+        const m = macros.find(x => x.name === name);
+        if (!m) return;
+        const ls = lines.slice();
+        ls.splice(m.line, 1);
         commit(ls);
     }
 

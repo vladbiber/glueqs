@@ -19,7 +19,7 @@ PanelWindow {
         anchors.fill: parent
         implicitHeight: col.implicitHeight + 36
         radius: 14
-        color: "#0d0d0d"
+        color: Theme.panel
         border.color: Theme.blockBorder
         border.width: 1
 
@@ -52,7 +52,7 @@ PanelWindow {
             }
             Text {
                 text: Brightness.device + (Brightness.writer !== "" ? "   ·   " + Brightness.writer : "")
-                color: "#9a9a9a"; font.family: Theme.uiFont; font.pixelSize: 11
+                color: Theme.muted; font.family: Theme.uiFont; font.pixelSize: 11
             }
             BrightnessControls { width: parent.width }
         }

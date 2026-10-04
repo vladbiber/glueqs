@@ -3,6 +3,7 @@ import Quickshell.Wayland
 import Quickshell.Services.Pipewire
 import Quickshell.Services.Mpris
 import QtQuick
+import "DotFont.js" as DotFont
 
 // Expanded media view, Nothing Recorder style: spinning reel disc with album art,
 // live dot equalizer, dotted timeline, boxed play button, and a manual 10-band
@@ -166,7 +167,7 @@ PanelWindow {
         id: content
         anchors.fill: parent
         radius: 14
-        color: "#0d0d0d"
+        color: Theme.panel
         border.color: Theme.blockBorder
         border.width: 1
 
@@ -261,9 +262,7 @@ PanelWindow {
                                 ctx.fillStyle = on
                                     ? (row === lit - 1 ? String(Theme.red) : String(Theme.fg))
                                     : String(Theme.faint);
-                                ctx.beginPath();
-                                ctx.arc(c * cell + r, (rows - 1 - row) * cell + r, r, 0, Math.PI * 2);
-                                ctx.fill();
+                                DotFont.dot(ctx, c * cell, (rows - 1 - row) * cell, r * 2, Theme.dotShape);
                             }
                         }
                     }
@@ -337,7 +336,7 @@ PanelWindow {
                         }
                         Rectangle {
                             width: 62; height: 36; radius: 10
-                            color: playArea.containsMouse ? "#1a1a1a" : "transparent"
+                            color: playArea.containsMouse ? Theme.surface : "transparent"
                             border.color: Theme.fg
                             border.width: 1.5
                             DotIcon {
@@ -434,7 +433,7 @@ PanelWindow {
                             readonly property bool active: Settings.s.eqPreset === modelData
                             width: 92; height: 24
                             radius: 6
-                            color: cma.containsMouse ? "#1c1c1c" : "transparent"
+                            color: cma.containsMouse ? Theme.hover : "transparent"
                             border.color: active ? Theme.red : Theme.blockBorder
                             border.width: 1
                             DotText {

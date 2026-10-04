@@ -53,7 +53,7 @@ Column {
     Rectangle {
         visible: root.tab === "wm"
         width: parent.width; height: 360
-        radius: 8; color: "#0e0e0e"; border.color: Theme.blockBorder
+        radius: 8; color: Theme.panelSolid; border.color: Theme.blockBorder
         clip: true
         ListView {
             anchors { fill: parent; margins: 1 }
@@ -63,14 +63,14 @@ Column {
             section.delegate: Rectangle {
                 required property string section
                 width: ListView.view.width; height: 26
-                color: "#0e0e0e"
+                color: Theme.panelSolid
                 Text { anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter } text: section.toUpperCase(); color: Theme.red; font.family: Theme.uiFont; font.pixelSize: 10; font.letterSpacing: 1.2 }
             }
             delegate: Rectangle {
                 id: arow
                 required property var modelData
                 width: ListView.view.width; height: 32
-                color: ama.containsMouse ? "#1a1a1a" : "transparent"
+                color: ama.containsMouse ? Theme.surface : "transparent"
                 Text {
                     anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
                     text: arow.modelData.label
@@ -79,7 +79,7 @@ Column {
                 Text {
                     anchors { right: parent.right; rightMargin: 12; verticalCenter: parent.verticalCenter }
                     text: arow.modelData.action
-                    color: "#7a7a7a"; font.family: Theme.uiFont; font.pixelSize: 11
+                    color: Theme.muted; font.family: Theme.uiFont; font.pixelSize: 11
                 }
                 MouseArea { id: ama; anchors.fill: parent; hoverEnabled: true; onClicked: root.picked(arow.modelData.action) }
             }
@@ -90,7 +90,7 @@ Column {
     Rectangle {
         visible: root.tab === "apps"
         width: parent.width; height: 360
-        radius: 8; color: "#0e0e0e"; border.color: Theme.blockBorder
+        radius: 8; color: Theme.panelSolid; border.color: Theme.blockBorder
         clip: true
         ListView {
             anchors { fill: parent; margins: 1 }
@@ -100,7 +100,7 @@ Column {
                 id: prow
                 required property var modelData
                 width: ListView.view.width; height: 38
-                color: pma.containsMouse ? "#1a1a1a" : "transparent"
+                color: pma.containsMouse ? Theme.surface : "transparent"
                 Image {
                     id: icon
                     anchors { left: parent.left; leftMargin: 10; verticalCenter: parent.verticalCenter }
@@ -113,7 +113,7 @@ Column {
                     anchors { left: icon.right; leftMargin: 10; right: parent.right; rightMargin: 12; verticalCenter: parent.verticalCenter }
                     spacing: 1
                     Text { width: parent.width; text: prow.modelData.name; color: Theme.fg; font.family: Theme.uiFont; font.pixelSize: 12; elide: Text.ElideRight }
-                    Text { width: parent.width; text: root.execOf(prow.modelData); color: "#7a7a7a"; font.family: Theme.uiFont; font.pixelSize: 10; elide: Text.ElideRight }
+                    Text { width: parent.width; text: root.execOf(prow.modelData); color: Theme.muted; font.family: Theme.uiFont; font.pixelSize: 10; elide: Text.ElideRight }
                 }
                 MouseArea { id: pma; anchors.fill: parent; hoverEnabled: true; onClicked: root.picked("spawn:" + root.execOf(prow.modelData)) }
             }
@@ -122,7 +122,7 @@ Column {
             anchors.centerIn: parent
             visible: root.apps.length === 0
             text: "No applications found"
-            color: "#9a9a9a"; font.family: Theme.uiFont; font.pixelSize: 12
+            color: Theme.muted; font.family: Theme.uiFont; font.pixelSize: 12
         }
     }
 
@@ -131,14 +131,14 @@ Column {
         visible: root.tab === "custom"
         width: parent.width
         spacing: 8
-        Text { text: "Runs through sh -c, so pipes and $VARS work."; color: "#9a9a9a"; font.family: Theme.uiFont; font.pixelSize: 11 }
+        Text { text: "Runs through sh -c, so pipes and $VARS work."; color: Theme.muted; font.family: Theme.uiFont; font.pixelSize: 11 }
         Row {
             width: parent.width
             spacing: 8
             GwField { id: custom; width: parent.width - useB.width - 8; placeholder: "foot -e htop" }
             GwButton { id: useB; label: "USE"; onClicked: { const c = custom.draft.trim(); if (c !== "") root.picked("spawn:" + c); } }
         }
-        Text { text: "Or a raw action, e.g. wm:ratio:+0.1"; color: "#9a9a9a"; font.family: Theme.uiFont; font.pixelSize: 11 }
+        Text { text: "Or a raw action, e.g. wm:ratio:+0.1"; color: Theme.muted; font.family: Theme.uiFont; font.pixelSize: 11 }
         Row {
             width: parent.width
             spacing: 8

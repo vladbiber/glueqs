@@ -8,7 +8,7 @@ Rectangle {
 
     width: 30; height: 16
     radius: 8
-    color: "#0a0a0a"
+    color: Theme.panelSolid
     border.color: on ? Theme.red : Theme.blockBorder
     border.width: 1
 

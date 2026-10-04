@@ -72,9 +72,35 @@ Singleton {
             property int wallpaperTransitionMs: 900
             property int wallpaperRandomMin: 0   // minutes between random changes, 0 = off
             property string wallpaperSolid: "#000000" // behind the picture, or alone without one
-            property string dockPinned: ""       // desktop entry ids pinned to the overview dash
+            property string dockPinned: "org.glue.Welcome" // desktop entry ids pinned to the overview dash; ids without a .desktop file are skipped
             property string dockUsage: ""        // "id=count,id=count", most used first
-            property string accent: "#d71921"
+            property string accent: ""          // empty = the scheme's own accent
+            // ---- theme ----
+            property string themeScheme: "nothing" // a Palettes.js id, "custom" or "wallpaper"
+            property string themeCustom: ""      // JSON of the custom scheme's slots
+            property string wallpaperSchemeMode: "dark"   // dark | light, for the wallpaper scheme
+            property string wallpaperSchemeType: "scheme-tonal-spot"
+            property string uiFont: ""           // empty = JetBrains Mono
+            property int fontWeight: 500
+            property string dotShape: "round"    // round | square | rounded | diamond | bar
+            property real dotFill: 1.0           // dot size inside its cell, 0.6..1.2
+            property real panelOpacity: 1.0
+            property real tileOpacity: 1.0
+            property bool borders: true
+            property int radius: 10
+            property int barSize: 48
+            property int tileSpacing: 8
+            property bool barFloating: false
+            property real animSpeed: 1.0         // 0 = no animation
+            // ---- sleep mode and keep awake ----
+            property bool sleepEnabled: true
+            property bool keepAwake: false
+            // ---- visualisers in the bar ----
+            property int vizBars: 16
+            property int vizWidth: 96
+            property string vizColor: "accent"   // accent | text | gradient
+            property int vizFps: 30
+            property bool vizHideIdle: false
             property string eqPreset: ""
             property string eqGains: "0,0,0,0,0,0,0,0,0,0"
         }
@@ -84,6 +110,8 @@ Singleton {
     Timer {
         interval: 1500; running: root.ready
         onTriggered: {
+            // a 0 timeout used to be how sleep mode was switched off
+            if (json.idleOffMin <= 0) { json.sleepEnabled = false; json.idleOffMin = 10; }
             const all = (json.barLeft + "," + json.barCenter + "," + json.barRight)
                 .split(",").filter(x => x !== "");
             if (!all.includes("tray")) {

@@ -30,7 +30,7 @@ Item {
             color: Theme.fg
             font.family: Theme.uiFont
             font.pixelSize: 13
-            font.weight: Font.Medium
+            font.weight: Theme.fontWeight
             elide: Text.ElideRight
         }
         Text {
@@ -43,7 +43,7 @@ Item {
                          + (row.unit !== "" ? " " + row.unit : "");
                 return s;
             }
-            color: "#9a9a9a"
+            color: Theme.muted
             font.family: Theme.uiFont
             font.pixelSize: 11
             wrapMode: Text.WordWrap
@@ -72,6 +72,6 @@ Item {
         visible: !row.last
         anchors { left: parent.left; right: parent.right; bottom: parent.bottom; leftMargin: row.pad; rightMargin: row.pad }
         height: 1
-        color: "#202020"
+        color: Theme.line
     }
 }

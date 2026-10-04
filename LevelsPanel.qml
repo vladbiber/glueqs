@@ -14,14 +14,14 @@ PanelWindow {
     WlrLayershell.layer: WlrLayer.Overlay
     visible: Popups.open === "levels"
 
-    component Small: Text { color: "#9a9a9a"; font.family: Theme.uiFont; font.pixelSize: 11 }
+    component Small: Text { color: Theme.muted; font.family: Theme.uiFont; font.pixelSize: 11 }
 
     Rectangle {
         id: content
         anchors.fill: parent
         implicitHeight: row.implicitHeight + 36
         radius: 14
-        color: "#0d0d0d"
+        color: Theme.panel
         border.color: Theme.blockBorder
         border.width: 1
 

@@ -90,7 +90,7 @@ PanelWindow {
         width: root.cardWidth
         height: root.cardHeight
         radius: 14
-        color: "#0d0d0d"
+        color: Theme.panel
         border.color: Theme.blockBorder
         border.width: 1
 
@@ -105,7 +105,7 @@ PanelWindow {
                 width: rows.width
                 height: visible ? root.rowHeight : 0
                 radius: 8
-                color: backArea.containsMouse ? "#1c1c1c" : "transparent"
+                color: backArea.containsMouse ? Theme.hover : "transparent"
 
                 DotIcon {
                     id: backIcon
@@ -148,7 +148,7 @@ PanelWindow {
                         visible: !row.separator
                         anchors.fill: parent
                         radius: 8
-                        color: area.containsMouse && row.modelData.enabled ? "#1c1c1c" : "transparent"
+                        color: area.containsMouse && row.modelData.enabled ? Theme.hover : "transparent"
 
                         Image {
                             id: rowIcon

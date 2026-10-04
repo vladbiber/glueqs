@@ -19,6 +19,9 @@ Item {
     readonly property real dotHeight: 7 * cell - gap
     readonly property bool dotted: Settings.s.dotFont
 
+    // true when maxWidth cut the text short
+    readonly property bool cut: dotted ? shown !== text : label.truncated
+
     // what is actually drawn in dot mode
     readonly property string shown: maxWidth > 0 && dotted
         ? DotFont.fitCells(text, Math.floor((maxWidth + gap) / cell))
@@ -37,6 +40,8 @@ Item {
     onColorChanged: canvas.requestPaint()
     onPxChanged: canvas.requestPaint()
     onGapChanged: canvas.requestPaint()
+    readonly property string shapeKey: Theme.dotShape + Theme.dotFill
+    onShapeKeyChanged: canvas.requestPaint()
 
     Canvas {
         id: canvas
@@ -54,9 +59,7 @@ Item {
             const drawDot = (col, row, on) => {
                 if (!on && root.offColor.a === 0) return;
                 ctx.fillStyle = on ? String(root.color) : String(root.offColor);
-                ctx.beginPath();
-                ctx.arc(col * cell + r, row * cell + r, r, 0, Math.PI * 2);
-                ctx.fill();
+                DotFont.dot(ctx, col * cell + px * (1 - Theme.dotFill) / 2, row * cell + px * (1 - Theme.dotFill) / 2, px * Theme.dotFill, Theme.dotShape);
             };
             for (let i = 0; i < root.shown.length; i++) {
                 const g = DotFont.glyph(root.shown[i]);
@@ -95,7 +98,7 @@ Item {
         }
         font.family: Theme.uiFont
         font.pixelSize: Math.max(7, Math.round(root.dotHeight * 1.15))
-        font.weight: Font.Medium
+        font.weight: Theme.fontWeight
         font.letterSpacing: Math.max(0, root.gap * 0.3)
         renderType: Text.NativeRendering
     }

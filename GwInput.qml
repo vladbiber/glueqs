@@ -8,6 +8,11 @@ Column {
         GwRow { label: "Warp the pointer to the focused window"; hint: "When focus moves by keyboard"; key: "warp_pointer"
             GwToggle { key: "warp_pointer" } }
     }
+    GwTitle { text: "TOUCHPAD"; sub: "Three fingers sideways move the workspaces with your fingers (up and down in the scroll layout). Let go past half way, or flick, and it switches; otherwise it slides back." }
+    GwCard {
+        GwRow { label: "Swipe distance"; hint: "Finger travel for a whole workspace: less is more sensitive, 0 switches at once"; key: "swipe_distance"
+            GwNumber { key: "swipe_distance"; min: 0; max: 1000; step: 20 } }
+    }
     GwTitle { text: "KEY REPEAT" }
     GwCard {
         GwRow { label: "Rate"; hint: "Repeats per second while a key is held"; key: "repeat_rate"; unit: "/s"

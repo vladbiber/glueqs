@@ -14,7 +14,7 @@ Column {
         visible: parent.sub !== ""
         width: parent.width
         text: parent.sub
-        color: "#9a9a9a"
+        color: Theme.muted
         font.family: Theme.uiFont
         font.pixelSize: 12
         wrapMode: Text.WordWrap

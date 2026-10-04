@@ -50,7 +50,7 @@ PanelWindow {
         id: content
         anchors.fill: parent
         radius: 14
-        color: "#0d0d0d"
+        color: Theme.panel
         border.color: Theme.blockBorder
         border.width: 1
 
@@ -108,7 +108,7 @@ PanelWindow {
                             && root.year === root.today.getFullYear()
                         width: 34; height: 26
                         radius: 5
-                        color: isToday ? "#26090b" : "transparent"
+                        color: isToday ? Qt.alpha(Theme.red, 0.16) : "transparent"
                         border.color: isToday ? Theme.red : "transparent"
                         border.width: 1
                         DotText {

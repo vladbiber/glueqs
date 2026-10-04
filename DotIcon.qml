@@ -21,6 +21,8 @@ Item {
     onNameChanged: canvas.requestPaint()
     onColorChanged: canvas.requestPaint()
     onPxChanged: canvas.requestPaint()
+    readonly property string shapeKey: Theme.dotShape + Theme.dotFill
+    onShapeKeyChanged: canvas.requestPaint()
 
     Canvas {
         id: canvas
@@ -38,9 +40,7 @@ Item {
             for (let row = 0; row < bitmap.length; row++)
                 for (let col = 0; col < bitmap[row].length; col++)
                     if (bitmap[row][col] === "1") {
-                        ctx.beginPath();
-                        ctx.arc(col * cell + r, row * cell + r, r, 0, Math.PI * 2);
-                        ctx.fill();
+                        DotFont.dot(ctx, col * cell, row * cell, px * Theme.dotFill, Theme.dotShape);
                     }
         }
     }

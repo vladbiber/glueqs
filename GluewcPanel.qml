@@ -34,7 +34,7 @@ PanelWindow {
         id: content
         anchors.fill: parent
         radius: 14
-        color: "#0d0d0d"
+        color: Theme.panel
         border.color: Theme.blockBorder
         border.width: 1
 
@@ -63,12 +63,12 @@ PanelWindow {
                             text: Gluewc.home !== "" && Gluewc.configPath.startsWith(Gluewc.home)
                                   ? "~" + Gluewc.configPath.slice(Gluewc.home.length) : Gluewc.configPath
                             elide: Text.ElideMiddle
-                            color: "#9a9a9a"; font.family: Theme.uiFont; font.pixelSize: 11
+                            color: Theme.muted; font.family: Theme.uiFont; font.pixelSize: 11
                         }
                         Text {
                             id: noteText
                             text: "   ·   saved changes apply immediately"
-                            color: "#9a9a9a"; font.family: Theme.uiFont; font.pixelSize: 11
+                            color: Theme.muted; font.family: Theme.uiFont; font.pixelSize: 11
                         }
                     }
                 }
@@ -119,14 +119,14 @@ PanelWindow {
                         readonly property bool active: root.page === index
                         width: parent.width; height: 46
                         radius: 8
-                        color: pma.containsMouse ? "#1c1c1c" : active ? "#181818" : "transparent"
+                        color: pma.containsMouse ? Theme.hover : active ? Theme.surface : "transparent"
                         border.color: active ? Theme.red : "transparent"
                         border.width: 1
                         Column {
                             anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
                             spacing: 4
                             DotText { text: prow.modelData.label; px: 1.1; gap: 1; color: prow.active ? Theme.fg : Theme.mid }
-                            Text { text: prow.modelData.sub; color: "#9a9a9a"; font.family: Theme.uiFont; font.pixelSize: 11 }
+                            Text { text: prow.modelData.sub; color: Theme.muted; font.family: Theme.uiFont; font.pixelSize: 11 }
                         }
                         MouseArea {
                             id: pma
@@ -168,7 +168,7 @@ PanelWindow {
             height: Gluewc.trialActive ? 52 : 0
             visible: height > 0
             radius: 10
-            color: "#151010"
+            color: Qt.alpha(Theme.red, 0.08)
             border.color: Theme.red
             Behavior on height { NumberAnimation { duration: 140 } }
             clip: true

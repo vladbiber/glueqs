@@ -10,8 +10,9 @@ Rectangle {
     implicitHeight: Theme.vertical ? inner.implicitHeight + hpad * 2 : Theme.blockHeight
     radius: Theme.blockRadius
     color: Theme.blockBg
-    border.color: Theme.blockBorder
+    border.color: Theme.tileBorder
     border.width: 1
+    Behavior on color { ColorAnimation { duration: Theme.ms(250) } }
 
     Item {
         id: inner

@@ -29,7 +29,7 @@ Block {
         Rectangle { // body
             y: 3; width: 10; height: 18
             radius: 3
-            color: "#0a0a0a"
+            color: Theme.panelSolid
             border.color: Theme.blockBorder
             border.width: 1
             Rectangle { // charge fill

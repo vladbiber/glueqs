@@ -35,7 +35,7 @@ Item {
             const rot = root.angle * Math.PI / 180;
 
             // belt + pulley + tension wheel (gray mechanics)
-            ctx.strokeStyle = "#3a3a3a";
+            ctx.strokeStyle = String(Theme.strong);
             ctx.lineWidth = 1.5;
             ctx.beginPath();
             ctx.moveTo(cx + R * 0.45, cy - R * 0.89);
@@ -51,7 +51,7 @@ Item {
             ctx.beginPath();
             ctx.arc(pcx - 12, pcy + pr + 27, 7, 0, Math.PI * 2);
             ctx.stroke();
-            ctx.fillStyle = "#3a3a3a";
+            ctx.fillStyle = String(Theme.strong);
             ctx.beginPath();
             ctx.arc(pcx - 12, pcy + pr + 27, 1.6, 0, Math.PI * 2);
             ctx.fill();
@@ -80,7 +80,7 @@ Item {
             ctx.beginPath();
             ctx.arc(cx, cy, R, 0, Math.PI * 2);
             ctx.stroke();
-            ctx.fillStyle = "#0d0d0d";
+            ctx.fillStyle = String(Theme.panelSolid);
             ctx.beginPath();
             ctx.arc(cx, cy, 15, 0, Math.PI * 2);
             ctx.fill();

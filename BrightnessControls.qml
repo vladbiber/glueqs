@@ -64,7 +64,7 @@ Column {
               ? "Nothing here can write the backlight: install brightnessctl or light, or make " + Brightness.base + "/" + Brightness.device + "/brightness writable."
               : "0% switches the panel off. Any brightness key brings it back, and this widget stays in the bar showing 0%."
               + "   Writes through " + Brightness.writer + "."
-        color: root.pct === 0 ? Theme.fg : "#9a9a9a"
+        color: root.pct === 0 ? Theme.fg : Theme.muted
         font.family: Theme.uiFont; font.pixelSize: 11
     }
 }

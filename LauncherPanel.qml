@@ -80,7 +80,7 @@ PanelWindow {
         id: content
         anchors.fill: parent
         radius: 14
-        color: "#0d0d0d"
+        color: Theme.panel
         border.color: Theme.blockBorder
         border.width: 1
 
@@ -111,7 +111,7 @@ PanelWindow {
             Rectangle {
                 width: parent.width; height: 32
                 radius: 8
-                color: "#161616"
+                color: Theme.surface
                 border.color: Theme.blockBorder
                 Row {
                     anchors { left: parent.left; leftMargin: 10; verticalCenter: parent.verticalCenter }
@@ -158,7 +158,7 @@ PanelWindow {
                         width: list.width - (list.contentHeight > list.height ? 8 : 0)
                         height: 28
                         radius: 6
-                        color: index === root.sel || ma.containsMouse ? "#1c1c1c" : "transparent"
+                        color: index === root.sel || ma.containsMouse ? Theme.hover : "transparent"
                         border.color: index === root.sel ? Theme.red : "transparent"
                         border.width: 1
                         DotText {

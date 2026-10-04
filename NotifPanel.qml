@@ -24,7 +24,7 @@ PanelWindow {
         id: content
         anchors.fill: parent
         radius: 14
-        color: "#0d0d0d"
+        color: Theme.panel
         border.color: Theme.blockBorder
         border.width: 1
 
@@ -76,7 +76,7 @@ PanelWindow {
                         width: parent.width
                         height: ncol.implicitHeight + 14
                         radius: 8
-                        color: "#141414"
+                        color: Theme.surface
                         border.color: Theme.blockBorder
                         border.width: 1
                         Column {

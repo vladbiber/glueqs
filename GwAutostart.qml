@@ -33,7 +33,7 @@ Column {
                 anchors { left: parent.left; verticalCenter: parent.verticalCenter }
                 width: 26
                 text: String(arow.index + 1)
-                color: "#9a9a9a"; font.family: Theme.uiFont; font.pixelSize: 12
+                color: Theme.muted; font.family: Theme.uiFont; font.pixelSize: 12
             }
             GwField {
                 anchors { left: parent.left; leftMargin: 26; right: rm.left; rightMargin: 10; verticalCenter: parent.verticalCenter }
@@ -46,7 +46,7 @@ Column {
                 label: "REMOVE"; small: true; danger: true
                 onClicked: page.replaceAt(arow.index, "")
             }
-            Rectangle { anchors { left: parent.left; right: parent.right; bottom: parent.bottom } height: 1; color: "#1a1a1a" }
+            Rectangle { anchors { left: parent.left; right: parent.right; bottom: parent.bottom } height: 1; color: Theme.surface }
         }
     }
 
@@ -57,7 +57,7 @@ Column {
     Text {
         visible: Gluewc.autostarts.length === 0
         text: "Nothing starts with the session yet."
-        color: "#9a9a9a"; font.family: Theme.uiFont; font.pixelSize: 12
+        color: Theme.muted; font.family: Theme.uiFont; font.pixelSize: 12
     }
 
     Item { width: 1; height: 14 }
@@ -80,6 +80,6 @@ Column {
     Text {
         width: parent.width
         text: "The glueqs bar itself is one of these lines (qs -c glueqs). Wallpaper daemons are not needed: the shell paints the wallpaper."
-        color: "#9a9a9a"; font.family: Theme.uiFont; font.pixelSize: 11; wrapMode: Text.WordWrap
+        color: Theme.muted; font.family: Theme.uiFont; font.pixelSize: 11; wrapMode: Text.WordWrap
     }
 }

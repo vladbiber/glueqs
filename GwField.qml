@@ -14,8 +14,8 @@ Rectangle {
 
     width: 120; height: 30
     radius: 7
-    color: input.activeFocus ? "#1a1a1a" : "#141414"
-    border.color: input.activeFocus ? Theme.red : fma.containsMouse ? "#3a3a3a" : Theme.blockBorder
+    color: input.activeFocus ? Theme.surface : Theme.surface
+    border.color: input.activeFocus ? Theme.red : fma.containsMouse ? Theme.strong : Theme.blockBorder
     border.width: 1
 
     // long values show their start, not their tail
@@ -38,7 +38,7 @@ Rectangle {
         anchors { fill: parent; leftMargin: 9; rightMargin: 9 }
         visible: input.text === "" && !input.activeFocus
         text: root.placeholder
-        color: "#6f6f6f"
+        color: Theme.muted
         font.family: Theme.uiFont
         font.pixelSize: 13
         horizontalAlignment: root.align

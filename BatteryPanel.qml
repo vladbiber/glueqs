@@ -2,6 +2,7 @@ import Quickshell
 import Quickshell.Wayland
 import Quickshell.Services.UPower
 import QtQuick
+import "DotFont.js" as DotFont
 
 // Rich battery view: dot-matrix battery gauge, big percent, details grid and
 // power profile selector (needs power-profiles-daemon for the modes to apply).
@@ -42,7 +43,7 @@ PanelWindow {
         id: content
         anchors.fill: parent
         radius: 14
-        color: "#0d0d0d"
+        color: Theme.panel
         border.color: Theme.blockBorder
         border.width: 1
 
@@ -86,9 +87,7 @@ PanelWindow {
                         const r = 2.5;
                         const dot = (c, row, col) => {
                             ctx.fillStyle = c;
-                            ctx.beginPath();
-                            ctx.arc(col * cell + r, row * cell + r, r, 0, Math.PI * 2);
-                            ctx.fill();
+                            DotFont.dot(ctx, col * cell, row * cell, r * 2, Theme.dotShape);
                         };
                         const litCols = Math.round(lvl * (cols - 2) * sweep);
                         const fillCol = root.charging || root.full
@@ -181,7 +180,7 @@ PanelWindow {
                     readonly property bool active: PowerProfiles.profile === mode
                     width: 97; height: 30
                     radius: 8
-                    color: mArea.containsMouse ? "#1c1c1c" : "transparent"
+                    color: mArea.containsMouse ? Theme.hover : "transparent"
                     border.color: active ? Theme.red : Theme.blockBorder
                     border.width: 1
                     DotText {

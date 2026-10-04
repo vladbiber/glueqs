@@ -3,6 +3,7 @@
 
 // [action, label, group]; N stands for a workspace number 1..9
 var WM = [
+    ["macro:stop_all", "Stop all macros", "Macros"],
     ["wm:kill", "Close window", "Windows"],
     ["wm:toggle_fullscreen", "Fullscreen, bar stays", "Windows"],
     ["wm:toggle_real_fullscreen", "Fullscreen, whole screen", "Windows"],

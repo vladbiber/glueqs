@@ -11,6 +11,7 @@ Singleton {
     property string open: ""
     property int settingsTab: 0
     property int gluewcPage: 0
+    signal settingsScroll(int y)
 
     function toggle(name) {
         open = (open === name) ? "" : name;
@@ -43,8 +44,19 @@ Singleton {
             root.toggle("settings");
         }
 
+        // qs -c glueqs ipc call glueqs settingspage 2      straight to a page
+        function settingspage(page: int): void {
+            root.settingsTab = page;
+            root.open = "settings";
+        }
+
         // qs -c glueqs ipc call glueqs gluewc          the compositor settings
         // qs -c glueqs ipc call glueqs gluewcpage 6    straight to a page
+        // qs -c glueqs ipc call glueqs settingsscroll 600   scroll the open page
+        function settingsscroll(y: int): void {
+            root.settingsScroll(y);
+        }
+
         function gluewc(): void {
             root.toggle("gluewc");
         }

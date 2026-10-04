@@ -48,7 +48,7 @@ Row {
         anchors.verticalCenter: parent.verticalCenter
         width: 28
         text: root.unit
-        color: "#9a9a9a"
+        color: Theme.muted
         font.family: Theme.uiFont
         font.pixelSize: 12
     }

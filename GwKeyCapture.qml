@@ -94,8 +94,8 @@ Item {
         Rectangle {
             width: parent.width; height: 46
             radius: 8
-            color: root.capturing ? "#1a1010" : "#141414"
-            border.color: root.capturing ? Theme.red : kma.containsMouse ? "#3a3a3a" : Theme.blockBorder
+            color: root.capturing ? Qt.alpha(Theme.red, 0.1) : Theme.surface
+            border.color: root.capturing ? Theme.red : kma.containsMouse ? Theme.strong : Theme.blockBorder
             border.width: root.capturing ? 2 : 1
 
             Item {
@@ -134,7 +134,7 @@ Item {
                     delegate: Rectangle {
                         required property string modelData
                         width: chipText.implicitWidth + 18; height: 26; radius: 6
-                        color: "#0a0a0a"; border.color: "#3a3a3a"
+                        color: Theme.panelSolid; border.color: Theme.strong
                         Text { id: chipText; anchors.centerIn: parent; text: parent.modelData; color: Theme.fg; font.family: Theme.uiFont; font.pixelSize: 12; font.weight: Font.DemiBold }
                     }
                 }
@@ -142,7 +142,7 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     visible: root.capturing || root.combo === ""
                     text: root.capturing ? (root.held !== "" ? "+ ..." : "Press the keys now, Esc cancels") : "Click, then press the keys"
-                    color: root.capturing ? Theme.fg : "#9a9a9a"
+                    color: root.capturing ? Theme.fg : Theme.muted
                     font.family: Theme.uiFont; font.pixelSize: 12
                 }
             }
@@ -150,7 +150,7 @@ Item {
                 anchors { right: parent.right; rightMargin: 12; verticalCenter: parent.verticalCenter }
                 visible: !root.capturing && root.combo !== ""
                 text: root.combo
-                color: "#9a9a9a"; font.family: Theme.uiFont; font.pixelSize: 11
+                color: Theme.muted; font.family: Theme.uiFont; font.pixelSize: 11
             }
         }
 
@@ -160,7 +160,7 @@ Item {
             GwButton { label: "SHIFT"; small: true; active: root.mShift; onClicked: { root.mShift = !root.mShift; root.fromManual(); } }
             GwButton { label: "CTRL"; small: true; active: root.mCtrl; onClicked: { root.mCtrl = !root.mCtrl; root.fromManual(); } }
             GwButton { label: "ALT"; small: true; active: root.mAlt; onClicked: { root.mAlt = !root.mAlt; root.fromManual(); } }
-            Text { anchors.verticalCenter: parent.verticalCenter; text: "+"; color: "#9a9a9a"; font.family: Theme.uiFont; font.pixelSize: 13 }
+            Text { anchors.verticalCenter: parent.verticalCenter; text: "+"; color: Theme.muted; font.family: Theme.uiFont; font.pixelSize: 13 }
             GwField {
                 width: 150; height: 26
                 text: root.mKey
@@ -171,7 +171,7 @@ Item {
         Text {
             width: parent.width
             text: "A combo gluewc already uses never reaches this box, the compositor acts on it first; build those with the buttons. Key names are XKB names: Return, space, Page_Up, XF86AudioRaiseVolume."
-            color: "#9a9a9a"; font.family: Theme.uiFont; font.pixelSize: 11; wrapMode: Text.WordWrap
+            color: Theme.muted; font.family: Theme.uiFont; font.pixelSize: 11; wrapMode: Text.WordWrap
         }
     }
 }
