@@ -48,6 +48,7 @@ Singleton {
         id: poll
         command: ["env", "LC_ALL=C", "sh", "-c",
             "echo \"WIFI:$(nmcli -t -f WIFI g 2>/dev/null)\";" +
+            "echo \"CON:$(nmcli -t -f TYPE,STATE dev status 2>/dev/null | awk -F: '$1==\\\"wifi\\\" && $2==\\\"connected\\\"{print \\\"yes\\\"; exit}')\";" +
             "echo \"SIG:$(nmcli -t -f ACTIVE,SIGNAL dev wifi 2>/dev/null | awk -F: '$1==\\\"yes\\\"{print $2; exit}')\";" +
             "echo \"BT:$(timeout 2 bluetoothctl show 2>/dev/null | awk '/Powered:/{print $2; exit}')\";" +
             "echo \"BTN:$(timeout 2 bluetoothctl devices Connected 2>/dev/null | grep -c ^Device)\""]
@@ -55,10 +56,15 @@ Singleton {
         stdout: SplitParser {
             onRead: line => {
                 if (line.startsWith("WIFI:")) root.wifiEnabled = line.slice(5) === "enabled";
+                else if (line.startsWith("CON:")) {
+                    root.wifiConnected = line.slice(4) === "yes";
+                    if (!root.wifiConnected) root.wifiSignal = 0;
+                }
                 else if (line.startsWith("SIG:")) {
                     const s = line.slice(4);
-                    root.wifiConnected = s !== "";
-                    root.wifiSignal = parseInt(s) || 0;
+                    // Rescans may briefly omit the active AP. Device state is
+                    // authoritative, so an empty signal cannot disconnect it.
+                    if (s !== "") root.wifiSignal = parseInt(s) || 0;
                 } else if (line.startsWith("BT:")) root.btPowered = line.slice(3) === "yes";
                 else if (line.startsWith("BTN:")) root.btConnected = parseInt(line.slice(4)) || 0;
             }
@@ -144,8 +150,10 @@ Singleton {
                 }
                 root.iface = d; root.ip = ip.replace(/\/\d+$/, ""); root.gateway = gw;
                 // the profile name is only a stand-in until a scan names the network
-                if (c === "") { root.ssid = ""; root.band = ""; root.chan = 0; }
-                else if (root.ssid === "") root.ssid = c;
+                const connected = c !== "" && c !== "--";
+                if (!connected) {
+                    if (!root.wifiConnected) { root.ssid = ""; root.band = ""; root.chan = 0; }
+                } else if (root.ssid === "") root.ssid = c;
             }
         }
     }

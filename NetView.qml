@@ -198,7 +198,8 @@ Column {
             DotText {
                 text: (NetStatus.busySsid !== "" ? NetStatus.busySsid
                        : NetStatus.wifiConnected ? NetStatus.ssid
-                       : NetStatus.wifiEnabled ? "SEARCHING" : "OFFLINE").toUpperCase()
+                       : NetStatus.wifiEnabled && NetStatus.wifiScanning ? "SEARCHING"
+                       : NetStatus.wifiEnabled ? "NO CONNECTION" : "OFFLINE").toUpperCase()
                 maxWidth: parent.width
                 px: root.wide ? 2.6 : 2; gap: 1
             }
