@@ -95,7 +95,35 @@ degrades to a widget that simply does not appear.
 | Brightness | A backlight under `/sys/class/backlight`, plus `udevadm` to follow external changes |
 | Equalizer presets | `easyeffects` |
 | Wallpaper | Nothing: the shell paints it itself, on a background layer per screen |
+| Wallpaper palettes and terminal colours | Python 3.11+ and Pillow; matugen is optional for Material styles |
 | Session menu | `loginctl` |
+
+## Shared theme colours
+
+Settings → THEME can sync GlueWC window borders, Alacritty and Kitty with the
+bar. Alacritty and window borders follow the theme by default; Kitty is opt-in.
+DETECT finds installed terminals and their usual config files; APPLY updates the
+enabled ones. Turn off **Sync terminal text colours** to change only the
+background and retain the current foreground, ANSI colours, cursor and selection.
+Opacity, fonts, bindings and imports are preserved. Before the first config edit,
+a `.pre-glueqs` backup is saved beside the original (or the symlink target).
+Alacritty uses its normal live config reload; Kitty receives SIGUSR1. A custom
+`--config` launch or disabled live reload may need a manual reload. Turning sync
+off keeps the last palette and lets you edit colours yourself again.
+
+**From wallpaper** defaults to Faithful, with Soft, Vibrant, Muted and Monochrome
+variants. The extractor ranks colours by their area in the image, keeps grey
+images neutral and adjusts perceptual lightness for readable dark/light palettes.
+Choose a source swatch for another variant, or a source monitor when displays use
+different wallpapers. Changes automatically reach the bar, borders and enabled
+terminals. Material styles use matugen with the selected source colour; they do
+not require an interactive colour prompt. If extraction fails, the previous
+palette remains and the Theme page shows the error.
+
+Inspect the active palette with `qs -c glueqs ipc call glueqs themeinfo`.
+Run colour/config regression tests with `python3 -m unittest discover -s tests`;
+`python3 tests/run_runtime.py` exercises the real QML services offscreen, including
+rapid wallpaper changes, terminal output and workspace-file write races.
 
 ## Install
 

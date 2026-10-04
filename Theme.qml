@@ -5,7 +5,7 @@ import QtQuick
 import "Palettes.js" as Palettes
 
 // Colours, fonts and sizes. The colours come from a scheme (Palettes.js), a
-// custom one the user edits, or matugen run on the wallpaper; the accent can
+// custom one the user edits, or a palette extracted from the wallpaper; the accent can
 // still be overridden on its own.
 Singleton {
     id: root
@@ -15,7 +15,7 @@ Singleton {
     property var wallScheme: null
     readonly property var p: {
         if (schemeId === "custom") return Palettes.parse(Settings.s.themeCustom);
-        if (schemeId === "wallpaper" && wallScheme) return wallScheme;
+        if (schemeId === "wallpaper") return wallScheme || Palettes.fromMaterial({ primary: "#b8b8b8" }, Settings.s.wallpaperSchemeMode !== "light");
         return Palettes.byId(schemeId);
     }
     readonly property bool dark: p.dark !== false
@@ -47,44 +47,56 @@ Singleton {
     // a dim veil behind modal popups
     readonly property color scrim: dark ? "#99000000" : "#55000000"
 
-    // matugen on the current wallpaper, only while that scheme is chosen
-    readonly property string wallPath: Settings.s.wallpaper
-    function refreshWall() { if (schemeId === "wallpaper" && wallPath !== "") matu.running = true }
-    onWallPathChanged: refreshWall()
+    // Snapshot each request. Old extraction results never overwrite a newer
+    // wallpaper, mode or seed choice; changes while busy queue one fresh run.
+    readonly property string wallPath: Wallpapers.pathFor(Settings.s.wallpaperPaletteMonitor
+        || (Quickshell.screens.length ? Quickshell.screens[0].name : ""))
+    readonly property string wallRequest: JSON.stringify([wallPath, Settings.s.wallpaperSchemeMode,
+        Settings.s.wallpaperSchemeType, Settings.s.wallpaperSeed])
+    property string wallApplied: ""
+    property string wallError: ""
+    property var wallSeeds: []
+    readonly property bool wallReady: wallScheme !== null && wallApplied === wallRequest
+    readonly property bool wallBusy: extract.running || wallDelay.running
+    function refreshWall() { wallDelay.restart() }
+    onWallRequestChanged: refreshWall()
+    onWallPathChanged: if (wallApplied !== "") Settings.s.wallpaperSeed = 0
     onSchemeIdChanged: refreshWall()
-    readonly property string wallKnobs: Settings.s.wallpaperSchemeMode + Settings.s.wallpaperSchemeType
-    onWallKnobsChanged: refreshWall()
+    Connections { target: Settings; function onReadyChanged() { root.refreshWall() } }
     Component.onCompleted: refreshWall()
-    Process {
-        id: matu
-        command: ["sh", "-c",
-            'PATH="$HOME/.local/bin:$PATH"; command -v matugen >/dev/null || exit 3; '
-            + 'matugen image "$1" --json hex --dry-run -m "$2" -t "$3" --prefer saturation 2>/dev/null',
-            "glueqs", root.wallPath, Settings.s.wallpaperSchemeMode, Settings.s.wallpaperSchemeType]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                try {
-                    const j = JSON.parse(text);
-                    const mode = Settings.s.wallpaperSchemeMode;
-                    const c = {};
-                    for (const k in j.colors) {
-                        const v = j.colors[k];
-                        c[k] = typeof v === "string" ? v : (v[mode]?.color ?? v.default?.color ?? "");
-                    }
-                    root.wallScheme = Palettes.fromMaterial(c, mode !== "light");
-                } catch (e) {
-                    console.warn("glueqs: matugen output not understood: " + e);
-                }
-            }
+    Timer {
+        id: wallDelay
+        interval: 180
+        onTriggered: {
+            if (!Settings.ready || root.schemeId !== "wallpaper") return;
+            if (root.wallPath === "") { root.wallError = "Choose a wallpaper first."; return; }
+            if (extract.running) return; // onExited schedules the latest request
+            root.wallError = "";
+            extract.request = root.wallRequest;
+            const args = JSON.parse(extract.request);
+            extract.command = ["python3", Quickshell.shellPath("theme_tools.py"), "extract",
+                args[0], args[1], args[2], String(args[3])];
+            extract.running = true;
         }
     }
-    readonly property bool matugenOk: matuCheck.ok
     Process {
-        id: matuCheck
-        property bool ok: false
-        running: true
-        command: ["sh", "-c", 'PATH="$HOME/.local/bin:$PATH"; command -v matugen >/dev/null']
-        onExited: code => ok = code === 0
+        id: extract
+        property string request: ""
+        stdout: StdioCollector {
+            onStreamFinished: {
+                if (extract.request !== root.wallRequest || root.schemeId !== "wallpaper") return;
+                try {
+                    const result = JSON.parse(text);
+                    if (result.error) { root.wallError = result.error; return; }
+                    root.wallScheme = result.palette;
+                    root.wallSeeds = result.seeds;
+                    root.wallApplied = extract.request;
+                } catch (e) { root.wallError = "Wallpaper extraction needs Python 3.11+ and Pillow."; }
+            }
+        }
+        onExited: {
+            if (request !== root.wallRequest) root.refreshWall();
+        }
     }
 
     // ---- fonts ----

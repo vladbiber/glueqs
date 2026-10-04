@@ -41,6 +41,7 @@
                     curl
                     bluez
                     coreutils
+                    (python3.withPackages (ps: [ ps.pillow ]))
                   ]
                 )
               }

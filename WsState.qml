@@ -23,10 +23,15 @@ Singleton {
     function outputFor(name) { return outputs[name] ?? null }
 
     function parse(text) {
+        // gluewc writes in place: an event can arrive between truncate and
+        // close. Keep the last complete snapshot instead of hiding the strip.
+        if (!text.trim() || !text.endsWith("\n")) return false;
         const out = ({});
         for (const line of text.split("\n")) {
+            if (!line.trim()) continue;
             const f = line.trim().split(" ");
-            if (f.length < 4) continue;
+            if (f.length < 4 || !/^[01]$/.test(f[1]) || !/^\d+$/.test(f[2])
+                || !/^\d+(,\d+)*$/.test(f[3])) return false;
             out[f[0]] = {
                 name: f[0],
                 active: f[1] === "1",
@@ -35,18 +40,25 @@ Singleton {
                 layout: f[4] ?? "bsp"
             };
         }
-        outputs = out;
+        if (JSON.stringify(outputs) !== JSON.stringify(out)) outputs = out;
         available = Object.keys(out).length > 0;
+        return true;
     }
 
+    property int readRetries: 0
+    Timer { id: readDelay; interval: 35; onTriggered: stateFile.reload() }
+    function retryRead() {
+        if (readRetries++ < 3) readDelay.restart();
+    }
     FileView {
+        id: stateFile
         path: root.stateDir + "/workspaces"
         watchChanges: true
         preload: true
         printErrors: false
-        onFileChanged: reload()
-        onLoaded: root.parse(text())
-        onLoadFailed: { root.outputs = ({}); root.available = false; }
+        onFileChanged: { root.readRetries = 0; readDelay.restart(); }
+        onLoaded: if (!root.parse(text())) root.retryRead()
+        onLoadFailed: root.retryRead()
     }
 
     // gluewc-msg is installed next to the compositor; a prefix that is not on

@@ -24,6 +24,15 @@ Singleton {
     IpcHandler {
         target: "glueqs"
 
+        function themeinfo(): string {
+            return JSON.stringify({ scheme: Settings.s.themeScheme, palette: Theme.p,
+                wallpaper: Theme.wallPath, style: Settings.s.wallpaperSchemeType,
+                ready: Theme.wallReady, error: Theme.wallError, seeds: Theme.wallSeeds,
+                terminals: ThemeSync.terminals, terminalStatus: ThemeSync.status,
+                syncText: Settings.s.themeTerminalText, syncBorders: Settings.s.themeWindowBorders,
+                workspaces: WsState.outputs });
+        }
+
         function wallpaper(): void {
             root.toggle("wallpaper");
         }

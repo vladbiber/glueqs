@@ -107,8 +107,8 @@ Column {
         GwRow { label: "Behind the picture"; hint: "Also the colour on its own without one"
             Swatches { skey: "wallpaperSolid"; colors: ["#000000", "#241f31", "#1a1a2e", "#101820", "#f2f2f2"] }
         }
-        GwRow { label: "Shell colours from the wallpaper"; hint: Theme.matugenOk ? "The THEME page's \"From wallpaper\" scheme, via matugen" : "Needs matugen"
-            GwToggle { enabled: Theme.matugenOk; bound: true; value: Settings.s.themeScheme === "wallpaper"
+        GwRow { label: "Shell colours from the wallpaper"; hint: "Choose the palette style and image colours on the THEME page"
+            GwToggle { bound: true; value: Settings.s.themeScheme === "wallpaper"
                        onToggled: { Settings.s.themeScheme = Settings.s.themeScheme === "wallpaper" ? "nothing" : "wallpaper"; Settings.s.accent = ""; } }
         }
     }

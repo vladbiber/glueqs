@@ -37,9 +37,11 @@ Item {
     implicitHeight: dotHeight
 
     onShownChanged: canvas.requestPaint()
+    onDottedChanged: canvas.requestPaint()
     onColorChanged: canvas.requestPaint()
     onPxChanged: canvas.requestPaint()
     onGapChanged: canvas.requestPaint()
+    onOffColorChanged: canvas.requestPaint()
     readonly property string shapeKey: Theme.dotShape + Theme.dotFill
     onShapeKeyChanged: canvas.requestPaint()
 
@@ -47,6 +49,9 @@ Item {
         id: canvas
         anchors.fill: parent
         visible: root.dotted
+        onVisibleChanged: if (visible) requestPaint()
+        onWidthChanged: requestPaint()
+        onHeightChanged: requestPaint()
 
         onPaint: {
             const ctx = getContext("2d");

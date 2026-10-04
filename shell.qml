@@ -2,6 +2,7 @@ import Quickshell
 import QtQuick
 
 ShellRoot {
+    Component.onCompleted: ThemeSync.apply()
     // a screen that mirrors another, or is switched off, gets no windows of
     // its own: the compositor shows a mirror the source, bar and all. A
     // screen listed twice (seen on upstream Quickshell after an output

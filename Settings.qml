@@ -79,7 +79,13 @@ Singleton {
             property string themeScheme: "nothing" // a Palettes.js id, "custom" or "wallpaper"
             property string themeCustom: ""      // JSON of the custom scheme's slots
             property string wallpaperSchemeMode: "dark"   // dark | light, for the wallpaper scheme
-            property string wallpaperSchemeType: "scheme-tonal-spot"
+            property string wallpaperSchemeType: "faithful"
+            property string wallpaperPaletteMonitor: "" // empty = first screen
+            property int wallpaperSeed: 0
+            property bool themeWindowBorders: true
+            property bool themeAlacritty: true
+            property bool themeKitty: false
+            property bool themeTerminalText: true
             property string uiFont: ""           // empty = JetBrains Mono
             property int fontWeight: 500
             property string dotShape: "round"    // round | square | rounded | diamond | bar

@@ -143,7 +143,7 @@ Singleton {
         binds = bs;
         macros = ms;
         autostarts = as;
-        outputCfg = oc;
+        if (JSON.stringify(outputCfg) !== JSON.stringify(oc)) outputCfg = oc;
         loaded = true;
     }
 
@@ -382,8 +382,10 @@ Singleton {
     // ---- outputs state file ----
     property var outputs: []
     property bool outputsLoaded: false
+    property var passiveOutputs: ({})
 
     function parseOutputs(text) {
+        if (!text.trim() || !text.endsWith("\n")) return false;
         const out = [];
         for (const line of text.split("\n")) {
             if (line.trim() === "") continue;
@@ -404,25 +406,36 @@ Singleton {
             }
             if (o.name !== "") out.push(o);
         }
-        outputs = out;
+        if (out.length === 0) return false;
+        if (JSON.stringify(outputs) !== JSON.stringify(out)) outputs = out;
+        const passive = ({});
+        for (const o of out) if (o.mirror !== "none" || !o.enabled) passive[o.name] = true;
+        // Screen windows only depend on enabled/mirror membership, not focus,
+        // geometry or repeated state notifications from a border colour edit.
+        if (JSON.stringify(passiveOutputs) !== JSON.stringify(passive)) passiveOutputs = passive;
         outputsLoaded = out.length > 0;
+        return true;
     }
     function output(name) { return outputs.find(o => o.name === name) ?? null }
     function isMirror(name) { const o = output(name); return o !== null && o.mirror !== "none" }
     // mirrors and disabled outputs get no shell windows
-    function isPassive(name) { const o = output(name); return o !== null && (o.mirror !== "none" || !o.enabled) }
+    function isPassive(name) { return passiveOutputs[name] === true }
     function focusedOutput() {
         return outputs.find(o => o.focused && o.enabled) ?? outputs.find(o => o.enabled) ?? null;
     }
 
+    property int outputRetries: 0
+    Timer { id: outputDelay; interval: 35; onTriggered: outputFile.reload() }
+    function retryOutputs() { if (outputRetries++ < 3) outputDelay.restart() }
     FileView {
+        id: outputFile
         path: root.stateDir + "/outputs"
         watchChanges: true
         preload: true
         printErrors: false
-        onFileChanged: reload()
-        onLoaded: root.parseOutputs(text())
-        onLoadFailed: { root.outputs = []; root.outputsLoaded = false; }
+        onFileChanged: { root.outputRetries = 0; outputDelay.restart(); }
+        onLoaded: if (!root.parseOutputs(text())) root.retryOutputs()
+        onLoadFailed: root.retryOutputs()
     }
 
     // ---- identify: every screen shows its name for a moment ----

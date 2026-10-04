@@ -135,7 +135,7 @@ Rectangle {
             }
             Item { width: 14; height: 1 }
             Label { text: "COLOURS"; width: 66 }
-            Chip { label: "FROM WALLPAPER"; on: Settings.s.themeScheme === "wallpaper"; visible: Theme.matugenOk
+            Chip { label: "FROM WALLPAPER"; on: Settings.s.themeScheme === "wallpaper"
                    onClicked: { Settings.s.themeScheme = Settings.s.themeScheme === "wallpaper" ? "nothing" : "wallpaper"; Settings.s.accent = ""; } }
         }
     }

@@ -23,14 +23,15 @@ Column {
     }
     GwTitle { text: "BORDERS"; sub: "Hex colours, rrggbb or rrggbbaa." }
     GwCard {
+        SToggle { label: "Follow bar colours"; hint: "Use the GlueQS theme and wallpaper palette"; skey: "themeWindowBorders" }
         GwRow { label: "Border width"; key: "border"; unit: "px"
             GwNumber { key: "border"; min: 0; max: 12; unit: "px" } }
         GwRow { label: "Focused window"; key: "border_focus"
-            GwColor { key: "border_focus" } }
+            GwColor { key: "border_focus"; enabled: !Settings.s.themeWindowBorders } }
         GwRow { label: "Other windows"; key: "border_normal"
-            GwColor { key: "border_normal" } }
+            GwColor { key: "border_normal"; enabled: !Settings.s.themeWindowBorders } }
         GwRow { label: "Normal mode"; hint: "The focused border while the keyboard is in normal mode"; key: "normal_mode_color"
-            GwColor { key: "normal_mode_color" } }
+            GwColor { key: "normal_mode_color"; enabled: !Settings.s.themeWindowBorders } }
         GwRow { label: "Borders on unfocused windows"; key: "unfocused_borders"
             GwToggle { key: "unfocused_borders" } }
         GwRow { label: "Desktop colour"; hint: "Behind everything, where no wallpaper is painted"; key: "root_color"

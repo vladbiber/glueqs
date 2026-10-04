@@ -1,4 +1,5 @@
 import QtQuick
+import Quickshell
 import "Palettes.js" as Palettes
 
 // THEME: colour schemes as cards painted in their own colours, the scheme
@@ -124,16 +125,14 @@ Column {
             delegate: SchemeCard { required property var modelData; s: modelData }
         }
         SchemeCard {
-            sid: "wallpaper"; name: Theme.matugenOk ? "From wallpaper" : "Wallpaper (no matugen)"
+            sid: "wallpaper"; name: "From wallpaper"
             s: Theme.wallScheme ?? Palettes.SCHEMES[0]
-            opacity: Theme.matugenOk ? 1 : 0.45
-            enabled: Theme.matugenOk
         }
         SchemeCard { sid: "custom"; name: "Custom"; s: page.custom }
     }
 
     // ---- the wallpaper scheme ----
-    GwTitle { visible: Settings.s.themeScheme === "wallpaper"; text: "FROM THE WALLPAPER"; sub: "matugen reads the picture on screen and builds the scheme; it follows every wallpaper change." }
+    GwTitle { visible: Settings.s.themeScheme === "wallpaper"; text: "FROM THE WALLPAPER"; sub: "Follows the wallpaper automatically. Faithful uses the dominant colours without boosting tiny saturated details." }
     GwCard {
         visible: Settings.s.themeScheme === "wallpaper"
         GwRow { label: "Mode"
@@ -143,14 +142,89 @@ Column {
                 onPicked: v => Settings.s.wallpaperSchemeMode = v
             }
         }
-        GwRow { label: "Style"; hint: "How far the colours stray from the picture"
-            GwChoice {
-                bound: true; value: Settings.s.wallpaperSchemeType
-                options: [{ v: "scheme-tonal-spot", label: "TONAL" }, { v: "scheme-vibrant", label: "VIBRANT" },
-                          { v: "scheme-expressive", label: "EXPRESSIVE" }, { v: "scheme-fidelity", label: "FAITHFUL" },
-                          { v: "scheme-monochrome", label: "MONO" }]
-                onPicked: v => Settings.s.wallpaperSchemeType = v
+        GwRow { label: "Style"; hint: "Faithful keeps the image hue; grey images stay neutral"
+            Column {
+                spacing: 5
+                GwChoice {
+                    bound: true; value: Settings.s.wallpaperSchemeType
+                    options: [{ v: "faithful", label: "FAITHFUL" }, { v: "soft", label: "SOFT" },
+                              { v: "vibrant", label: "VIBRANT" }]
+                    onPicked: v => Settings.s.wallpaperSchemeType = v
+                }
+                GwChoice {
+                    bound: true; value: Settings.s.wallpaperSchemeType
+                    options: [{ v: "muted", label: "MUTED" }, { v: "monochrome", label: "MONO" }]
+                    onPicked: v => Settings.s.wallpaperSchemeType = v
+                }
             }
+        }
+        GwRow { label: "Material styles"; hint: "Optional: requires matugen"
+            Column {
+                spacing: 5
+                GwChoice {
+                    bound: true; value: Settings.s.wallpaperSchemeType
+                    options: [{ v: "scheme-tonal-spot", label: "TONAL" }, { v: "scheme-content", label: "CONTENT" },
+                              { v: "scheme-fidelity", label: "FIDELITY" }]
+                    onPicked: v => Settings.s.wallpaperSchemeType = v
+                }
+                GwChoice {
+                    bound: true; value: Settings.s.wallpaperSchemeType
+                    options: [{ v: "scheme-expressive", label: "EXPRESSIVE" }, { v: "scheme-rainbow", label: "RAINBOW" }]
+                    onPicked: v => Settings.s.wallpaperSchemeType = v
+                }
+            }
+        }
+        GwRow {
+            visible: Theme.wallSeeds.length > 0
+            label: "Colour from the image"; hint: "First = dominant. Pick another shade for a different palette."
+            Row {
+                spacing: 8
+                Repeater {
+                    model: Theme.wallSeeds
+                    delegate: Rectangle {
+                        required property string modelData
+                        required property int index
+                        width: 30; height: 30; radius: 8; color: modelData
+                        border.width: Settings.s.wallpaperSeed === index ? 3 : 1
+                        border.color: Settings.s.wallpaperSeed === index ? Theme.fg : Theme.border
+                        MouseArea { anchors.fill: parent; onClicked: Settings.s.wallpaperSeed = parent.index }
+                    }
+                }
+            }
+        }
+        GwRow { label: "Wallpaper source"; hint: "The selected screen supplies one shared palette"
+            Flow {
+                width: 280; spacing: 4
+                GwButton { label: "FIRST SCREEN"; small: true; active: Settings.s.wallpaperPaletteMonitor === ""
+                    onClicked: Settings.s.wallpaperPaletteMonitor = "" }
+                Repeater {
+                    model: Quickshell.screens
+                    delegate: GwButton {
+                        required property var modelData
+                        label: modelData.name; small: true
+                        active: Settings.s.wallpaperPaletteMonitor === modelData.name
+                        onClicked: Settings.s.wallpaperPaletteMonitor = modelData.name
+                    }
+                }
+            }
+        }
+        GwRow { label: Theme.wallBusy ? "Extracting colours…" : Theme.wallError ? "Could not update colours" : "Wallpaper palette ready"
+            hint: Theme.wallError || "Changes also update enabled window borders and terminals."
+            GwButton { label: "REFRESH"; enabled: !Theme.wallBusy; onClicked: Theme.refreshWall() }
+        }
+    }
+
+    GwTitle { text: "WINDOWS AND TERMINALS"; sub: "Keep their colours in sync with the bar, including wallpaper changes. Turning sync off keeps the last colours." }
+    GwCard {
+        SToggle { visible: Gluewc.available; label: "GlueWC window borders"; hint: "Accent on focus; border opacity is preserved"; skey: "themeWindowBorders" }
+        GwRow { label: "Detect terminals"; hint: "Find installed Kitty and Alacritty configurations"
+            GwButton { label: "DETECT"; onClicked: ThemeSync.detect() }
+        }
+        SToggle { label: "Alacritty"; hint: ThemeSync.description("alacritty"); skey: "themeAlacritty" }
+        SToggle { label: "Kitty"; hint: ThemeSync.description("kitty"); skey: "themeKitty" }
+        SToggle { label: "Sync terminal text colours"; hint: "Off: change only the background; keep text, ANSI, cursor and selection colours"; skey: "themeTerminalText" }
+        GwRow { label: "Apply to enabled terminals"; hint: ThemeSync.status || "Colours only. Font, shortcuts and transparency stay as configured."
+            GwButton { label: "APPLY"; onClicked: ThemeSync.apply() }
         }
     }
 
