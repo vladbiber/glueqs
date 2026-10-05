@@ -26,7 +26,7 @@ Column {
                     Settings.s.tileSpacing = 8;
                     Settings.s.barLeft = "settings,launcher,workspaces,tray,media";
                     Settings.s.barCenter = "weather,clock,notifs";
-                    Settings.s.barRight = "netspeed,network,levels,battery,power";
+                    Settings.s.barRight = "netspeed,network,volume,brightness,battery,power";
                 }
             }
         }

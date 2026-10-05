@@ -2,7 +2,7 @@ import Quickshell
 import Quickshell.Wayland
 import QtQuick
 
-// The brightness panel under the bar widget: slider, presets, screen off.
+// The brightness panel under the bar widget: slider, presets, screen off, sleep mode.
 PanelWindow {
     id: root
     anchors { top: true; right: true }
@@ -55,6 +55,44 @@ PanelWindow {
                 color: Theme.muted; font.family: Theme.uiFont; font.pixelSize: 11
             }
             BrightnessControls { width: parent.width }
+            Rectangle { width: parent.width; height: 1; color: Theme.blockBorder }
+            Row {
+                width: parent.width
+                spacing: 12
+                Column {
+                    width: parent.width - sleepToggle.width - 12
+                    spacing: 3
+                    DotText { text: "SLEEP MODE"; px: 1.5; gap: 1.2 }
+                    Text {
+                        width: parent.width
+                        wrapMode: Text.WordWrap
+                        text: Settings.s.sleepEnabled
+                            ? Idle.statusText
+                            : "Off: the screen stays on."
+                        color: Theme.muted; font.family: Theme.uiFont; font.pixelSize: 11
+                    }
+                }
+                GwToggle {
+                    id: sleepToggle
+                    anchors.verticalCenter: parent.verticalCenter
+                    bound: true
+                    value: Settings.s.sleepEnabled
+                    onToggled: Settings.s.sleepEnabled = !Settings.s.sleepEnabled
+                }
+            }
+            Row {
+                spacing: 10
+                visible: Settings.s.sleepEnabled
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "After"
+                    color: Theme.fg; font.family: Theme.uiFont; font.pixelSize: 12
+                }
+                GwNumber {
+                    bound: true; value: Settings.s.idleOffMin; min: 1; max: 120; step: 1; unit: "min"
+                    onChanged: v => Settings.s.idleOffMin = Math.round(v)
+                }
+            }
         }
     }
 

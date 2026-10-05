@@ -57,7 +57,7 @@ Singleton {
             property bool barSolid: false
             property string barLeft: "settings,launcher,workspaces,tray,media"
             property string barCenter: "weather,clock,notifs"
-            property string barRight: "netspeed,network,levels,battery,power"
+            property string barRight: "netspeed,network,volume,brightness,battery,power"
             property int osdDuration: 1600
             property int volumeStep: 5
             property string weatherLocation: ""
