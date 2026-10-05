@@ -262,8 +262,11 @@ PanelWindow {
                                 if (mouse.button === Qt.RightButton)
                                     root.togglePin(gcell.modelData.id);
                                 else {
-                                    root.launch(gcell.modelData);
-                                    root.appsOpen = false;
+                                    // launching closes the overview and destroys this
+                                    // delegate, so keep the references first
+                                    const dock = root, app = gcell.modelData;
+                                    dock.launch(app);
+                                    dock.appsOpen = false;
                                 }
                             }
                         }
